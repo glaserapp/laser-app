@@ -1,11 +1,158 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <title>Laser App</title>
+  <meta charset="UTF-8" />
+  <title>Laser Label Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <h1>Laser App – initial commit</h1>
-  <p>Everything is ready.</p>
+  <div class="app">
+    <!-- LEVÝ PANEL – NASTAVENÍ -->
+    <aside class="sidebar">
+      <header class="sidebar-header">
+        <h1>Laser Label Builder</h1>
+        <p class="subtitle">Nultá verze · offline demo</p>
+      </header>
+
+      <!-- ZÁKAZNÍK -->
+      <section class="panel">
+        <h2>🔍 Zákazník</h2>
+        <label class="field">
+          <span>Název zákazníka</span>
+          <select id="customer-select">
+            <option value="MT01">M-technologies (MT01)</option>
+            <option value="AH01" selected>ARGO-HYTOS (AH01)</option>
+            <option value="DE01">Demo firma DE (DE01)</option>
+          </select>
+        </label>
+      </section>
+
+      <!-- HLAVNÍ KÓD / GTIN -->
+      <section class="panel">
+        <h2>🧩 Hlavní kód</h2>
+        <label class="field">
+          <span>GTIN / kód nástroje</span>
+          <input id="gtin-input" type="text" placeholder="např. 1234567 nebo T09" />
+        </label>
+
+        <label class="field checkbox">
+          <input id="use-serial" type="checkbox" checked />
+          <span>Použít seriál</span>
+        </label>
+
+        <div id="serial-block" class="serial-block">
+          <label class="field">
+            <span>Aktuální seriál</span>
+            <input id="serial-input" type="text" value="0001" />
+          </label>
+          <button id="next-serial-btn" class="btn small">➕ Další seriál</button>
+        </div>
+      </section>
+
+      <!-- DALŠÍ ŘÁDKY POPISU -->
+      <section class="panel">
+        <h2>⚙️ Další údaje</h2>
+
+        <label class="field">
+          <span>Rozměry (volitelně)</span>
+          <input id="dimensions-input" type="text" placeholder="např. D5-83-12-d5" />
+        </label>
+
+        <label class="field checkbox">
+          <input id="use-date" type="checkbox" checked />
+          <span>Přidat datum</span>
+        </label>
+
+        <label class="field" id="date-format-block">
+          <span>Formát datumu</span>
+          <select id="date-format-select">
+            <option value="DD.MM.YYYY">DD.MM.YYYY</option>
+            <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+            <option value="YYMMDD">YYMMDD</option>
+          </select>
+        </label>
+
+        <label class="field checkbox">
+          <input id="use-dm" type="checkbox" checked />
+          <span>Přidat DM kód</span>
+        </label>
+      </section>
+
+      <!-- STOPKA / DESKA -->
+      <section class="panel">
+        <h2>🧱 Stopka / ploška</h2>
+        <div class="grid-2">
+          <label class="field">
+            <span>Průměr stopky [mm]</span>
+            <div class="spinner">
+              <button data-spin="dia" data-step="-0.1">−</button>
+              <input id="diameter-input" type="number" value="6.0" step="0.1" />
+              <button data-spin="dia" data-step="0.1">+</button>
+            </div>
+          </label>
+          <label class="field">
+            <span>Délka plochy [mm]</span>
+            <div class="spinner">
+              <button data-spin="len" data-step="-0.5">−</button>
+              <input id="length-input" type="number" value="25.0" step="0.5" />
+              <button data-spin="len" data-step="0.5">+</button>
+            </div>
+          </label>
+        </div>
+
+        <label class="field checkbox">
+          <input id="auto-scale" type="checkbox" checked />
+          <span>Automaticky přizpůsobit velikost popisu</span>
+        </label>
+      </section>
+
+      <!-- EXPORT / BUDOUCÍ FUNKCE -->
+      <section class="panel">
+        <h2>📤 Export (pro laser SW)</h2>
+        <button id="export-btn" class="btn full">Uložit šablonu (JSON)</button>
+        <p class="helper-text">
+          V nulté verzi se otevře JSON v novém okně – lze uložit jako TXT/JSON a
+          předat laseru. Později napojíme přímo na Supabase a GSS.
+        </p>
+      </section>
+    </aside>
+
+    <!-- PRAVÁ STRANA – NÁHLED LASERU -->
+    <main class="preview-area">
+      <div class="preview-header">
+        <div>
+          <h2>Náhled laserového popisu</h2>
+          <p class="subtitle">Simulace plochy: <span id="plate-info">Ø6 × 25 mm</span></p>
+        </div>
+        <div class="theme-toggle">
+          <span>Light</span>
+          <label class="switch">
+            <input type="checkbox" id="theme-toggle" />
+            <span class="slider"></span>
+          </label>
+          <span>Dark</span>
+        </div>
+      </div>
+
+      <div class="preview-plate">
+        <div class="plate-inner">
+          <div id="line-main" class="line main-line">—</div>
+          <div id="line-dim" class="line dim-line"></div>
+          <div id="line-date" class="line date-line"></div>
+          <div id="dm-preview" class="dm-placeholder">
+            DM
+          </div>
+        </div>
+      </div>
+
+      <section class="preview-raw-output">
+        <h3>Surový výstup pro laser</h3>
+        <pre id="raw-output"></pre>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
