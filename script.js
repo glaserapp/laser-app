@@ -32,10 +32,7 @@ async function loadCustomers() {
 }
 
 /************************************************************
- * GENERATE SERIAL (DB COUNTER)
- ************************************************************/
-/************************************************************
- * GENERATE SERIAL + DM
+ * GENERATE SERIAL
  ************************************************************/
 async function generateSerial() {
   console.log("▶ generateSerial() spuštěno");
@@ -52,14 +49,13 @@ async function generateSerial() {
   let finalSerial = "";
   let finalDM = "";
 
-  // --- 1) SERIAL vypnutý
+  // SERIAL vypnutý
   if (!serialEnabled) {
     finalSerial = "";
   }
 
-  // --- 2) SERIAL zapnutý → generujeme přes DB
+  // SERIAL zapnutý
   else {
-    // zjistíme zda prefix existuje
     const { data, error } = await supabaseClient
       .from("serial_counters")
       .select("*")
@@ -69,7 +65,6 @@ async function generateSerial() {
     let next = 1;
 
     if (!data) {
-      // prefix ještě neexistuje → založit nový counter
       const { data: inserted, error: insertErr } = await supabaseClient
         .from("serial_counters")
         .insert({ prefix, current_serial: 1 })
@@ -92,7 +87,7 @@ async function generateSerial() {
         .eq("id", data.id);
 
       if (updateErr) {
-        console.error("Chyba update counteru:", updateErr);
+        console.error("Chyba aktualizace counteru:", updateErr);
         alert("Chyba generování serialu.");
         return;
       }
@@ -101,53 +96,14 @@ async function generateSerial() {
     finalSerial = `${prefix}-${String(next).padStart(4, "0")}`;
   }
 
-  // --- 3) DM GENERATOR
-  if (!dmEnabled) {
-    finalDM = "";
-  } else {
-    finalDM = serialEnabled ? finalSerial : prefix;
-  }
+  // DM kód
+  finalDM = dmEnabled
+    ? (serialEnabled ? finalSerial : prefix)
+    : "";
 
-  // --- 4) ZAPSAT DO UI
   document.getElementById("dm-content").value = finalDM;
 
-  console.log("➡️ Vygenerovaný DM:", finalDM);
-
   updatePreview();
-}
-
-  let next = 1;
-
-  if (!data) {
-    // prefix ještě neexistuje → vytvoříme
-    const { data: inserted, error: insertErr } = await supabaseClient
-      .from("serial_counters")
-      .insert({ prefix, current_serial: 1 })
-      .select()
-      .single();
-
-    if (insertErr) {
-      console.error("❌ Chyba vytváření prefixu:", insertErr);
-      return null;
-    }
-
-    next = 1;
-  } else {
-    // prefix existuje → zvýšíme counter
-    next = data.current_serial + 1;
-
-    const { error: updateErr } = await supabaseClient
-      .from("serial_counters")
-      .update({ current_serial: next })
-      .eq("id", data.id);
-
-    if (updateErr) {
-      console.error("❌ Chyba aktualizace counteru:", updateErr);
-      return null;
-    }
-  }
-
-  return `${prefix}-${String(next).padStart(4, "0")}`;
 }
 
 /************************************************************
@@ -199,8 +155,6 @@ async function saveTool() {
     dm_code: dmContent
   };
 
-  console.log("📦 Data posíláná do DB:", insertData);
-
   const { data, error } = await supabaseClient
     .from("tools")
     .insert(insertData);
@@ -215,7 +169,7 @@ async function saveTool() {
 }
 
 /************************************************************
- * INIT – Bind events
+ * INIT – EVENTS
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
   loadCustomers();
