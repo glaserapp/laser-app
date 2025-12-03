@@ -1,252 +1,197 @@
-/* === PREMIUM GOGROU LASER UI – STYLES === */
+/************************************************************
+ * SUPABASE – INIT
+ ************************************************************/
+const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
 
-:root {
-    --bg-main: #eceef5;
-    --bg-sidebar: #f7f8fc;
-    --bg-panel: #ffffff;
-    --bg-dark-text: #1d1f27;
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-    --border-color: #d7d9e1;
+/************************************************************
+ * LOAD CUSTOMERS FROM DB
+ ************************************************************/
+async function loadCustomers() {
+  const { data, error } = await supabaseClient
+    .from("customers")
+    .select("prefix, name")
+    .order("name", { ascending: true });
 
-    --accent-blue: #4f8bff;
-    --accent-green: #2fbf6b;
+  if (error) {
+    console.error("❌ Chyba načítání zákazníků:", error);
+    return;
+  }
 
-    --radius-lg: 18px;
-    --radius-sm: 10px;
+  const select = document.getElementById("customer-select");
+  select.innerHTML = "";
 
-    --shadow-soft: 0 12px 28px rgba(0,0,0,0.08);
-    --shadow-panel: 0 6px 18px rgba(0,0,0,0.06);
-
-    --font-main: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  data.forEach(c => {
+    const option = document.createElement("option");
+    option.value = c.prefix;
+    option.textContent = `${c.name} (${c.prefix})`;
+    select.appendChild(option);
+  });
 }
 
-body {
-    font-family: var(--font-main);
-    margin: 0;
-    background: var(--bg-main);
-    color: var(--bg-dark-text);
-    height: 100vh;
-    overflow: hidden;
+/************************************************************
+ * GENERATE SERIAL
+ ************************************************************/
+async function generateSerial() {
+  console.log("▶ generateSerial() spuštěno");
+
+  const prefix = document.getElementById("serial-prefix").value.trim();
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const serialEnabled = document.getElementById("serial-enable").checked;
+
+  if (!prefix) {
+    alert("Chybí prefix zákazníka.");
+    return;
+  }
+
+  let finalSerial = "";
+  let finalDM = "";
+
+  // SERIAL vypnutý
+  if (!serialEnabled) {
+    finalSerial = "";
+  }
+  // SERIAL zapnutý → generujeme přes DB
+  else {
+    const { data, error } = await supabaseClient
+      .from("serial_counters")
+      .select("*")
+      .eq("prefix", prefix)
+      .maybeSingle();
+
+    let next = 1;
+
+    if (!data) {
+      // Prefix neexistuje → vytvořit counter
+      const { data: inserted, error: insertErr } = await supabaseClient
+        .from("serial_counters")
+        .insert({ prefix, current_serial: 1 })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error("Chyba zakládání prefixu:", insertErr);
+        alert("Chyba generování serialu.");
+        return;
+      }
+
+      next = 1;
+    } else {
+      // Prefix existuje → zvýšit counter
+      next = data.current_serial + 1;
+
+      const { error: updateErr } = await supabaseClient
+        .from("serial_counters")
+        .update({ current_serial: next })
+        .eq("id", data.id);
+
+      if (updateErr) {
+        console.error("Chyba update counteru:", updateErr);
+        alert("Chyba generování serialu.");
+        return;
+      }
+    }
+
+    finalSerial = `${prefix}-${String(next).padStart(4, "0")}`;
+  }
+
+  // DM LOGIKA
+  if (!dmEnabled) {
+    finalDM = "";
+  } else {
+    finalDM = serialEnabled ? finalSerial : prefix;
+  }
+
+  // ZAPSAT DO UI
+  document.getElementById("dm-content").value = finalDM;
+
+  console.log("➡️ Vygenerovaný DM:", finalDM);
+  updatePreview();
 }
 
-/* === APP LAYOUT === */
+/************************************************************
+ * UPDATE PREVIEW
+ ************************************************************/
+function updatePreview() {
+  const toolName = document.getElementById("tool-name").value;
+  const diameter = document.getElementById("diameter").value;
+  const length = document.getElementById("length").value;
+  const dmContent = document.getElementById("dm-content").value;
 
-.app {
-    display: flex;
-    height: 100vh;
+  const preview = document.getElementById("preview-area");
+  preview.innerHTML = `
+    <div style="padding:20px; font-size:18px;">
+      <strong>${toolName}</strong><br>
+      Ø${diameter} × ${length} mm<br><br>
+      ${dmContent ? `<div>DM: <strong>${dmContent}</strong></div>` : ""}
+    </div>
+  `;
 }
 
-/* === SIDEBAR === */
+/************************************************************
+ * SAVE TOOL TO DATABASE
+ ************************************************************/
+async function saveTool() {
+  console.log("▶ saveTool() spuštěno");
 
-.sidebar {
-    width: 330px;
-    background: var(--bg-sidebar);
-    padding: 26px 22px;
-    box-shadow: 4px 0 14px rgba(0,0,0,0.05);
-    overflow-y: auto;
+  const customerPrefix = document.getElementById("customer-select").value;
+  const name = document.getElementById("tool-name").value.trim();
+  const diameter = parseFloat(document.getElementById("diameter").value);
+  const length = parseFloat(document.getElementById("length").value);
+
+  const serialEnabled = document.getElementById("serial-enable").checked;
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const dmContent = document.getElementById("dm-content").value.trim();
+
+  if (!name) {
+    alert("Musíš zadat název nástroje.");
+    return;
+  }
+
+  const insertData = {
+    customer_prefix: customerPrefix,
+    name,
+    diameter,
+    length,
+    serial_enabled: serialEnabled,
+    dm_enabled: dmEnabled,
+    dm_code: dmContent
+  };
+
+  console.log("📦 Data posíláná do DB:", insertData);
+
+  const { data, error } = await supabaseClient
+    .from("tools")
+    .insert(insertData);
+
+  if (error) {
+    console.error("❌ Chyba při ukládání:", error);
+    alert("⚠️ Chyba ukládání do databáze.");
+  } else {
+    console.log("✅ Uloženo:", data);
+    alert("✅ Nástroj úspěšně uložen!");
+  }
 }
 
-.premium-shadow {
-    box-shadow: var(--shadow-soft);
-}
+/************************************************************
+ * INIT – Bind events
+ ************************************************************/
+window.addEventListener("DOMContentLoaded", () => {
+  loadCustomers();
 
-.sidebar-header {
-    text-align: left;
-    margin-bottom: 28px;
-}
+  [
+    "tool-name",
+    "diameter",
+    "length",
+    "dm-content",
+    "dm-enable",
+    "serial-enable"
+  ].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updatePreview);
+  });
 
-.sidebar-header .logo {
-    font-size: 32px;
-    margin-bottom: 8px;
-}
-
-.sidebar-header h1 {
-    margin: 0;
-    font-weight: 600;
-    font-size: 1.2rem;
-}
-
-.subtitle {
-    margin-top: 4px;
-    font-size: 0.78rem;
-    color: #7b7f8a;
-}
-
-/* === PANELS === */
-
-.panel {
-    background: var(--bg-panel);
-    padding: 16px 18px;
-    border-radius: var(--radius-lg);
-    margin-bottom: 18px;
-}
-
-.premium-panel {
-    box-shadow: var(--shadow-panel);
-}
-
-.panel h2 {
-    margin-top: 0;
-    font-size: 1rem;
-    margin-bottom: 10px;
-    font-weight: 600;
-}
-
-/* === FIELDS === */
-
-.field {
-    display: flex;
-    flex-direction: column;
-    margin-bottom: 12px;
-}
-
-.field span {
-    font-size: 0.82rem;
-    color: #5d5f68;
-    margin-bottom: 4px;
-}
-
-input, select {
-    padding: 8px 10px;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-    background: #ffffff;
-    transition: 0.15s ease;
-}
-
-input:focus, select:focus {
-    outline: none;
-    border-color: var(--accent-blue);
-    box-shadow: 0 0 0 2px rgba(79,139,255,0.2);
-}
-
-/* === BUTTONS === */
-
-.btn {
-    padding: 10px 14px;
-    border-radius: var(--radius-sm);
-    border: none;
-    font-size: 0.9rem;
-    cursor: pointer;
-    font-weight: 600;
-    width: 100%;
-    transition: 0.15s ease;
-}
-
-.btn.blue {
-    background: var(--accent-blue);
-    color: #fff;
-}
-
-.btn.blue:hover {
-    background: #3b78e6;
-}
-
-.btn.green {
-    background: var(--accent-green);
-    color: #fff;
-}
-
-.btn.green:hover {
-    background: #26a75d;
-}
-
-/* === WORKSPACE === */
-
-.workspace {
-    flex: 1;
-    padding: 28px;
-    overflow: hidden;
-    background: linear-gradient(
-        135deg,
-        #f5f6fc 0%,
-        #eceef5 100%
-    );
-}
-
-.workspace h2 {
-    margin-top: 0;
-    margin-bottom: 18px;
-    font-size: 1.2rem;
-    font-weight: 600;
-}
-
-/* === PREVIEW AREA === */
-
-.preview {
-    background: #fff;
-    border-radius: var(--radius-lg);
-    height: calc(100vh - 120px);
-    box-shadow: var(--shadow-soft);
-    padding: 24px;
-    position: relative;
-}
-
-.preview-placeholder {
-    color: #7a7d87;
-    font-size: 1rem;
-    opacity: 0.7;
-    text-align: center;
-    margin-top: 80px;
-}
-/* === LABEL LAYOUT UVNITŘ PREVIEW === */
-
-.label-surface {
-  position: relative;
-  width: 100%;
-  height: 180px;
-  border-radius: 999px;
-  background: linear-gradient(135deg, #fdfdfd 0%, #e6e8f2 40%, #d1d5e5 100%);
-  box-shadow: var(--shadow-panel);
-  padding: 26px 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.label-lines {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.label-main {
-  font-size: 1.1rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-}
-
-.label-sub {
-  font-size: 0.9rem;
-  color: #555a66;
-}
-
-.label-meta {
-  font-size: 0.8rem;
-  color: #7b7f8a;
-}
-
-.label-serial {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
-}
-
-.serial-tag {
-  font-size: 0.7rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: #8a8fa0;
-}
-
-.serial-value {
-  font-family: "SF Mono", ui-monospace, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-  font-size: 0.9rem;
-  padding: 6px 10px;
-  border-radius: 999px;
-  background: #11121a;
-  color: #f5f6ff;
-  letter-spacing: 0.12em;
-}
+  updatePreview();
+});
