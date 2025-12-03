@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="cs">
+
 <head>
     <meta charset="UTF-8">
     <title>Laser Label Builder</title>
@@ -8,17 +9,18 @@
     <!-- CSS -->
     <link rel="stylesheet" href="styles.css">
 
-    <!-- Supabase knihovna – JEDNOU! -->
+    <!-- Supabase knihovna -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
 
-    <!-- Náš script – JEDNOU! -->
+    <!-- Náš JS -->
     <script src="script.js" defer></script>
 </head>
 
 <body>
+
 <div class="app">
 
-    <!-- SIDEBAR -->
+    <!-- ░░░ SIDEBAR ░░░ -->
     <aside class="sidebar premium-shadow">
 
         <header class="sidebar-header">
@@ -27,16 +29,20 @@
             <p class="subtitle">Nultá verze • Offline demo</p>
         </header>
 
-        <!-- ZÁKAZNÍK -->
+        <!-- ░░ ZÁKAZNÍK ░░ -->
         <section class="panel premium-panel">
             <h2>🧩 Zákazník</h2>
             <label class="field">
                 <span>Název zákazníka</span>
-                <select id="customer-select"></select>
+                <select id="customer-select">
+                    <option value="MT01">M-technologies (MT01)</option>
+                    <option value="AH01" selected>ARGO-HYTOS (AH01)</option>
+                    <option value="DE01">Demo Firma DE (DE01)</option>
+                </select>
             </label>
         </section>
 
-        <!-- PARAMETRY NÁSTROJE -->
+        <!-- ░░ PARAMETRY NÁSTROJE ░░ -->
         <section class="panel premium-panel">
             <h2>🛠️ Parametry nástroje</h2>
 
@@ -56,7 +62,7 @@
             </label>
         </section>
 
-        <!-- DM + SERIÁL -->
+        <!-- ░░ DM & SÉRIOVÉ ČÍSLO ░░ -->
         <section class="panel premium-panel">
             <h2>🔢 DM & Sériové číslo</h2>
 
@@ -71,25 +77,24 @@
             </label>
 
             <label class="field">
-                <span>Prefix</span>
-                <input id="serial-prefix" type="text" value="AH01">
+                <span>Obsah DM kódu</span>
+                <input id="dm-content" type="text" placeholder="např. AH01-0002">
             </label>
 
             <label class="field">
-                <span>Obsah DM kódu</span>
-                <input id="dm-content" type="text" placeholder="např. AH01-0002">
+                <span>Prefix</span>
+                <input id="serial-prefix" type="text" value="AH01">
             </label>
 
             <button class="btn blue" onclick="generateSerial()">Generovat DM / Serial</button>
         </section>
 
-        <!-- ULOŽENÍ -->
+        <!-- ░░ ULOŽIT / EXPORT ░░ -->
         <section class="panel premium-panel">
             <h2>💾 Uložit nástroj</h2>
             <button class="btn blue" onclick="saveTool()">Uložit nástroj</button>
         </section>
 
-        <!-- EXPORT -->
         <section class="panel premium-panel">
             <h2>📦 Export</h2>
             <button class="btn green" onclick="exportLabel()">Exportovat štítek</button>
@@ -97,14 +102,16 @@
 
     </aside>
 
-    <!-- PRACOVNÍ PLOCHA -->
+    <!-- ░░░ PRACOVNÍ PLOCHA ░░░ -->
     <main class="workspace premium-shadow">
         <h2>Náhled štítku (Laser Preview)</h2>
+
         <div id="preview-area" class="preview premium-panel">
             <p class="preview-placeholder">Zde bude náhled laserovaného štítku…</p>
         </div>
     </main>
 
 </div>
+
 </body>
 </html>
