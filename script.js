@@ -1,14 +1,13 @@
 /************************************************************
- * 1) SUPABASE INIT
+ * SUPABASE – INIT
  ************************************************************/
 const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
 
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-
 /************************************************************
- * 2) NAČTENÍ ZÁKAZNÍKŮ DO SELECTU
+ * LOAD CUSTOMERS FROM DB
  ************************************************************/
 async function loadCustomers() {
   const { data, error } = await supabaseClient
@@ -17,7 +16,7 @@ async function loadCustomers() {
     .order("name", { ascending: true });
 
   if (error) {
-    console.error("❌ Chyba při načítání zákazníků:", error);
+    console.error("❌ Chyba načítání zákazníků:", error);
     return;
   }
 
@@ -25,50 +24,32 @@ async function loadCustomers() {
   select.innerHTML = "";
 
   data.forEach(c => {
-    const opt = document.createElement("option");
-    opt.value = c.prefix;
-    opt.textContent = `${c.name} (${c.prefix})`;
-    select.appendChild(opt);
+    const option = document.createElement("option");
+    option.value = c.prefix;
+    option.textContent = `${c.name} (${c.prefix})`;
+    select.appendChild(option);
   });
 }
 
-
 /************************************************************
- * 3) GENEROVÁNÍ SERIÁLOVÉHO ČÍSLA (prefix-0001)
+ * GENERATE SERIAL (DB COUNTER)
  ************************************************************/
-async function generateSerial() {
-  const prefix = document.getElementById("serial-prefix").value.trim();
-  const dmEnabled = document.getElementById("dm-enable").checked;
-  const serialEnabled = document.getElementById("serial-enable").checked;
-
-  if (!prefix) {
-    alert("Musíš zadat prefix seriového čísla.");
-    return;
-  }
-
-  // 🔥 1) Pokud sériové číslo není povolené
-  if (!serialEnabled) {
-    document.getElementById("dm-content").value = "";
-    updatePreview();
-    return;
-  }
-
-  // 🔥 2) Dotaz do databáze
-  let { data, error } = await supabaseClient
+async function generateSerial(prefix) {
+  const { data, error } = await supabaseClient
     .from("serial_counters")
     .select("*")
     .eq("prefix", prefix)
     .maybeSingle();
 
-  let nextSerial = 1;
-
   if (error) {
-    console.error("Chyba načítání serialu:", error);
-    return;
+    console.error("❌ Chyba při čtení serial_counters:", error);
+    return null;
   }
 
-  // 🔥 3) prefix ještě neexistuje
+  let next = 1;
+
   if (!data) {
+    // prefix ještě neexistuje → vytvoříme
     const { data: inserted, error: insertErr } = await supabaseClient
       .from("serial_counters")
       .insert({ prefix, current_serial: 1 })
@@ -76,63 +57,50 @@ async function generateSerial() {
       .single();
 
     if (insertErr) {
-      console.error("Chyba při vytváření nového prefixu:", insertErr);
-      return;
+      console.error("❌ Chyba vytváření prefixu:", insertErr);
+      return null;
     }
 
-    nextSerial = 1;
+    next = 1;
   } else {
-    // 🔥 existuje → navýšit counter
-    nextSerial = data.current_serial + 1;
+    // prefix existuje → zvýšíme counter
+    next = data.current_serial + 1;
 
     const { error: updateErr } = await supabaseClient
       .from("serial_counters")
-      .update({ current_serial: nextSerial })
+      .update({ current_serial: next })
       .eq("id", data.id);
 
     if (updateErr) {
-      console.error("Chyba update serialu:", updateErr);
-      return;
+      console.error("❌ Chyba aktualizace counteru:", updateErr);
+      return null;
     }
   }
 
-  const fullSerial = `${prefix}-${String(nextSerial).padStart(4, "0")}`;
-
-  // 🔥 4) DM obsah = seriál (pokud je DM zapnuto)
-  if (dmEnabled) {
-    document.getElementById("dm-content").value = fullSerial;
-  }
-
-  updatePreview();
+  return `${prefix}-${String(next).padStart(4, "0")}`;
 }
 
-
 /************************************************************
- * 4) PREVIEW ŠTÍTKU
+ * UPDATE PREVIEW
  ************************************************************/
 function updatePreview() {
   const toolName = document.getElementById("tool-name").value;
   const diameter = document.getElementById("diameter").value;
   const length = document.getElementById("length").value;
-  const regrinds = document.getElementById("regrinds").value;
-
   const dmContent = document.getElementById("dm-content").value;
 
   const preview = document.getElementById("preview-area");
-
   preview.innerHTML = `
     <div style="padding:20px; font-size:18px;">
-      <strong>${toolName || ""}</strong><br>
-      Ø${diameter || "-"} × ${length || "-"} mm<br>
-      Max. přebroušení: ${regrinds || "-"}<br><br>
+      <strong>${toolName}</strong><br>
+      Ø${diameter} × ${length} mm<br><br>
       ${dmContent ? `<div>DM: <strong>${dmContent}</strong></div>` : ""}
     </div>
   `;
 }
 
-
 /************************************************************
- * 5) ULOŽENÍ NÁSTROJE DO DB (tabulka tools)
+ * SAVE TOOL TO DATABASE
  ************************************************************/
 async function saveTool() {
   console.log("▶ saveTool() spuštěno");
@@ -141,82 +109,58 @@ async function saveTool() {
   const name = document.getElementById("tool-name").value.trim();
   const diameter = parseFloat(document.getElementById("diameter").value);
   const length = parseFloat(document.getElementById("length").value);
-  const regrinds = parseInt(document.getElementById("regrinds").value);
 
   const serialEnabled = document.getElementById("serial-enable").checked;
   const dmEnabled = document.getElementById("dm-enable").checked;
   const dmContent = document.getElementById("dm-content").value.trim();
 
   if (!name) {
-    alert("❗ Musíš zadat název nástroje.");
+    alert("Musíš zadat název nástroje.");
     return;
   }
 
-  const newTool = {
+  const insertData = {
     customer_prefix: customerPrefix,
     name,
     diameter,
     length,
-    regrinds,
     serial_enabled: serialEnabled,
     dm_enabled: dmEnabled,
-    dm_code: dmContent || null
+    dm_code: dmContent
   };
 
-  console.log("📦 Data posílaná do DB:", newTool);
+  console.log("📦 Data posíláná do DB:", insertData);
 
   const { data, error } = await supabaseClient
     .from("tools")
-    .insert(newTool);
+    .insert(insertData);
 
   if (error) {
     console.error("❌ Chyba při ukládání:", error);
-    alert("⚠ Chyba ukládání do databáze.");
+    alert("⚠️ Chyba ukládání do databáze.");
   } else {
     console.log("✅ Uloženo:", data);
     alert("✅ Nástroj úspěšně uložen!");
   }
 }
 
-
 /************************************************************
- * 6) EXPORT ŠTÍTKU JAKO JSON
- ************************************************************/
-function exportLabel() {
-  const json = JSON.stringify(
-    {
-      toolName: document.getElementById("tool-name").value,
-      diameter: document.getElementById("diameter").value,
-      length: document.getElementById("length").value,
-      regrinds: document.getElementById("regrinds").value,
-      dm: document.getElementById("dm-content").value
-    },
-    null,
-    2
-  );
-
-  const blob = new Blob([json], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  window.open(url, "_blank");
-}
-
-
-/************************************************************
- * 7) INIT – PO NAČTENÍ STRÁNKY
+ * INIT – Bind events
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
   loadCustomers();
-  updatePreview();
 
   [
     "tool-name",
     "diameter",
     "length",
-    "regrinds",
     "dm-content",
     "dm-enable",
     "serial-enable"
   ].forEach(id => {
-    document.getElementById(id).addEventListener("input", updatePreview);
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updatePreview);
   });
+
+  updatePreview();
 });
