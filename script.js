@@ -311,4 +311,31 @@ async function generateSerial() {
   document.getElementById("dm-content").value = finalDM;
 
   updatePreview();
+    function updatePreview() {
+  const preview = document.getElementById("preview-area");
+
+  const toolName = document.getElementById("tool-name").value;
+  const diameter = document.getElementById("diameter").value;
+  const length = document.getElementById("length").value;
+  const regrinds = document.getElementById("regrinds").value;
+
+  const dmContent = document.getElementById("dm-content").value;
+
+  preview.innerHTML = `
+    <div style="padding:20px; font-size:18px;">
+      <strong>${toolName}</strong><br>
+      Ø${diameter} × ${length} mm<br>
+      Max. přebroušení: ${regrinds}<br><br>
+      ${dmContent ? `<div>DM kód: <strong>${dmContent}</strong></div>` : ""}
+    </div>
+  `;
+document.getElementById("dm-enable").addEventListener("change", updatePreview);
+document.getElementById("serial-enable").addEventListener("change", updatePreview);
+document.getElementById("dm-content").addEventListener("input", updatePreview);
+
+document.getElementById("tool-name").addEventListener("input", updatePreview);
+document.getElementById("diameter").addEventListener("input", updatePreview);
+document.getElementById("length").addEventListener("input", updatePreview);
+document.getElementById("regrinds").addEventListener("input", updatePreview);
+    }
 }
