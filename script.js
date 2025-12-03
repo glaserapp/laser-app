@@ -253,3 +253,62 @@ document.addEventListener("DOMContentLoaded", () => {
   // První vykreslení
   renderPreview();
 });
+async function generateSerial() {
+  const prefix = document.getElementById("serial-prefix").value.trim();
+  const startNum = parseInt(document.getElementById("serial-start").value);
+  const toolName = document.getElementById("tool-name").value.trim();
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const serialEnabled = document.getElementById("serial-enable").checked;
+
+  let finalSerial = "";
+  let finalDM = "";
+
+  // --- 1) Pokud je SERIAL vypnutý ---
+  if (!serialEnabled) {
+    finalSerial = "";
+  } 
+  // --- 2) SERIAL zapnutý → generujeme přes databázi ---
+  else {
+    const { data, error } = await supabase
+      .from("serial_counters")
+      .select("current_serial")
+      .eq("prefix", prefix)
+      .single();
+
+    let nextSerial = 1;
+
+    if (data) {
+      nextSerial = data.current_serial + 1;
+
+      await supabase
+        .from("serial_counters")
+        .update({ current_serial: nextSerial })
+        .eq("prefix", prefix);
+
+    } else {
+      await supabase
+        .from("serial_counters")
+        .insert({ prefix: prefix, current_serial: startNum });
+
+      nextSerial = startNum;
+    }
+
+    finalSerial = `${prefix}-${String(nextSerial).padStart(4, "0")}`;
+  }
+
+  // --- 3) DM logika ---
+  if (!dmEnabled) {
+    finalDM = "";
+  } else {
+    if (serialEnabled) {
+      finalDM = finalSerial;
+    } else {
+      finalDM = `${toolName}`;
+    }
+  }
+
+  // Zapsání do formuláře
+  document.getElementById("dm-content").value = finalDM;
+
+  updatePreview();
+}
