@@ -60,6 +60,20 @@
 
 
         <!-- ░░ SÉRIOVÉ ČÍSLO / DM KÓD ░░ -->
+        <label class="field">
+    <span>Povolit DataMatrix</span>
+    <input id="dm-enable" type="checkbox" checked>
+</label>
+
+<label class="field">
+    <span>Použít sériové číslo</span>
+    <input id="serial-enable" type="checkbox" checked>
+</label>
+
+<label class="field" id="dm-content-block">
+    <span>Obsah DM kódu</span>
+    <input id="dm-content" type="text" placeholder="např. AH01-0002">
+</label>
         <section class="panel premium-panel">
             <h2>🔢 Sériové číslo</h2>
 
@@ -73,7 +87,7 @@
                 <input id="serial-start" type="number" value="1">
             </label>
 
-            <button class="btn blue" onclick="generateSerial()">Vygenerovat sérii</button>
+            <button class="btn blue" onclick="generateSerial()">Generovat DM / Serial</button>
         </section>
 
 
