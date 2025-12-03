@@ -337,5 +337,43 @@ document.getElementById("tool-name").addEventListener("input", updatePreview);
 document.getElementById("diameter").addEventListener("input", updatePreview);
 document.getElementById("length").addEventListener("input", updatePreview);
 document.getElementById("regrinds").addEventListener("input", updatePreview);
+        async function saveTool() {
+  const customerPrefix = document.getElementById("customer-select").value;
+  const name = document.getElementById("tool-name").value.trim();
+  const diameter = parseFloat(document.getElementById("diameter").value);
+  const length = parseFloat(document.getElementById("length").value);
+  const regrinds = parseInt(document.getElementById("regrinds").value);
+
+  const serialEnabled = document.getElementById("serial-enable").checked;
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const dmContent = document.getElementById("dm-content").value.trim();
+
+  if (!name) {
+    alert("❗ Musíš zadat název nástroje.");
+    return;
+  }
+
+  const insertData = {
+    customer_prefix: customerPrefix,
+    name: name,
+    diameter: diameter,
+    length: length,
+    regrinds: regrinds,
+    dm_enabled: dmEnabled,
+    serial_enabled: serialEnabled,
+    dm_code: dmContent
+  };
+
+  const { data, error } = await supabase
+    .from("tools")
+    .insert(insertData);
+
+  if (error) {
+    console.error(error);
+    alert("⚠ Chyba při ukládání nástroje.");
+  } else {
+    alert("✅ Nástroj úspěšně uložen!");
+  }
+}
     }
 }
