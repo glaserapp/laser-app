@@ -4,20 +4,21 @@
     <meta charset="UTF-8">
     <title>Laser Label Builder</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <link rel="stylesheet" href="styles.css">
-    
-      <!-- Supabase knihovna -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-  <!-- Náš script -->
-  <script src="script.js" defer></script>
+    <!-- CSS -->
+    <link rel="stylesheet" href="styles.css">
+
+    <!-- Supabase knihovna – JEDNOU! -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
+
+    <!-- Náš script – JEDNOU! -->
+    <script src="script.js" defer></script>
 </head>
 
 <body>
 <div class="app">
 
-    <!-- ░░░ SIDEBAR ░░░ -->
+    <!-- SIDEBAR -->
     <aside class="sidebar premium-shadow">
 
         <header class="sidebar-header">
@@ -26,20 +27,16 @@
             <p class="subtitle">Nultá verze • Offline demo</p>
         </header>
 
-        <!-- ░░ ZÁKAZNÍK ░░ -->
+        <!-- ZÁKAZNÍK -->
         <section class="panel premium-panel">
             <h2>🧩 Zákazník</h2>
             <label class="field">
                 <span>Název zákazníka</span>
-                <select id="customer-select">
-                    <option value="MT01">M-technologies (MT01)</option>
-                    <option value="AH01" selected>ARGO-HYTOS (AH01)</option>
-                    <option value="DE01">Demo Firma DE (DE01)</option>
-                </select>
+                <select id="customer-select"></select>
             </label>
         </section>
 
-        <!-- ░░ PARAMETRY NÁSTROJE ░░ -->
+        <!-- PARAMETRY NÁSTROJE -->
         <section class="panel premium-panel">
             <h2>🛠️ Parametry nástroje</h2>
 
@@ -57,28 +54,21 @@
                 <span>Délka břitu [mm]</span>
                 <input id="length" type="number" step="0.1" value="30">
             </label>
-
-          
         </section>
 
-        <!-- ░░ DM & SÉRIOVÉ ČÍSLO ░░ -->
-        <label class="field">
-            <span>Povolit DataMatrix</span>
-            <input id="dm-enable" type="checkbox" checked>
-        </label>
-
-        <label class="field">
-            <span>Použít sériové číslo</span>
-            <input id="serial-enable" type="checkbox" checked>
-        </label>
-
-        <label class="field" id="dm-content-block">
-            <span>Obsah DM kódu</span>
-            <input id="dm-content" type="text" placeholder="např. AH01-0002">
-        </label>
-
+        <!-- DM + SERIÁL -->
         <section class="panel premium-panel">
-            <h2>🔢 Sériové číslo</h2>
+            <h2>🔢 DM & Sériové číslo</h2>
+
+            <label class="field">
+                <span>Povolit DataMatrix</span>
+                <input id="dm-enable" type="checkbox" checked>
+            </label>
+
+            <label class="field">
+                <span>Použít sériové číslo</span>
+                <input id="serial-enable" type="checkbox" checked>
+            </label>
 
             <label class="field">
                 <span>Prefix</span>
@@ -86,19 +76,20 @@
             </label>
 
             <label class="field">
-                <span>Počáteční číslo</span>
-                <input id="serial-start" type="number" value="1">
+                <span>Obsah DM kódu</span>
+                <input id="dm-content" type="text" placeholder="např. AH01-0002">
             </label>
 
             <button class="btn blue" onclick="generateSerial()">Generovat DM / Serial</button>
         </section>
 
-        <!-- ░░ ULOŽIT / EXPORT ░░ -->
+        <!-- ULOŽENÍ -->
         <section class="panel premium-panel">
             <h2>💾 Uložit nástroj</h2>
             <button class="btn blue" onclick="saveTool()">Uložit nástroj</button>
         </section>
 
+        <!-- EXPORT -->
         <section class="panel premium-panel">
             <h2>📦 Export</h2>
             <button class="btn green" onclick="exportLabel()">Exportovat štítek</button>
@@ -106,23 +97,14 @@
 
     </aside>
 
-    <!-- ░░░ PRACOVNÍ PLOCHA ░░░ -->
+    <!-- PRACOVNÍ PLOCHA -->
     <main class="workspace premium-shadow">
         <h2>Náhled štítku (Laser Preview)</h2>
-
         <div id="preview-area" class="preview premium-panel">
             <p class="preview-placeholder">Zde bude náhled laserovaného štítku…</p>
         </div>
     </main>
 
 </div>
-
-<!--  ███  ABSOLUTNĚ KLÍČOVÉ  ███ -->
-<!-- 1️⃣ Nejprve načíst Supabase knihovnu -->
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
-
-<!-- 2️⃣ Až poté náš skript -->
-<script src="script.js"></script>
-
 </body>
 </html>
