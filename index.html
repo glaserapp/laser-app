@@ -32,7 +32,6 @@
             </label>
         </section>
 
-
         <!-- ░░ PARAMETRY NÁSTROJE ░░ -->
         <section class="panel premium-panel">
             <h2>🛠️ Parametry nástroje</h2>
@@ -58,9 +57,7 @@
             </label>
         </section>
 
-
-        <!-- ░░ SÉRIOVÉ ČÍSLO / DM KÓD ░░ -->
-
+        <!-- ░░ DM & SÉRIOVÉ ČÍSLO ░░ -->
         <label class="field">
             <span>Povolit DataMatrix</span>
             <input id="dm-enable" type="checkbox" checked>
@@ -92,9 +89,7 @@
             <button class="btn blue" onclick="generateSerial()">Generovat DM / Serial</button>
         </section>
 
-
         <!-- ░░ ULOŽIT / EXPORT ░░ -->
-
         <section class="panel premium-panel">
             <h2>💾 Uložit nástroj</h2>
             <button class="btn blue" onclick="saveTool()">Uložit nástroj</button>
@@ -107,7 +102,6 @@
 
     </aside>
 
-
     <!-- ░░░ PRACOVNÍ PLOCHA ░░░ -->
     <main class="workspace premium-shadow">
         <h2>Náhled štítku (Laser Preview)</h2>
@@ -119,8 +113,11 @@
 
 </div>
 
-<!-- ✓ SPRÁVNÉ POŘADÍ: nejdřív Supabase, potom script.js -->
+<!--  ███  ABSOLUTNĚ KLÍČOVÉ  ███ -->
+<!-- 1️⃣ Nejprve načíst Supabase knihovnu -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
+
+<!-- 2️⃣ Až poté náš skript -->
 <script src="script.js"></script>
 
 </body>
