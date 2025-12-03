@@ -34,17 +34,87 @@ async function loadCustomers() {
 /************************************************************
  * GENERATE SERIAL (DB COUNTER)
  ************************************************************/
-async function generateSerial(prefix) {
-  const { data, error } = await supabaseClient
-    .from("serial_counters")
-    .select("*")
-    .eq("prefix", prefix)
-    .maybeSingle();
+/************************************************************
+ * GENERATE SERIAL + DM
+ ************************************************************/
+async function generateSerial() {
+  console.log("▶ generateSerial() spuštěno");
 
-  if (error) {
-    console.error("❌ Chyba při čtení serial_counters:", error);
-    return null;
+  const prefix = document.getElementById("serial-prefix").value.trim();
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const serialEnabled = document.getElementById("serial-enable").checked;
+
+  if (!prefix) {
+    alert("Chybí prefix zákazníka.");
+    return;
   }
+
+  let finalSerial = "";
+  let finalDM = "";
+
+  // --- 1) SERIAL vypnutý
+  if (!serialEnabled) {
+    finalSerial = "";
+  }
+
+  // --- 2) SERIAL zapnutý → generujeme přes DB
+  else {
+    // zjistíme zda prefix existuje
+    const { data, error } = await supabaseClient
+      .from("serial_counters")
+      .select("*")
+      .eq("prefix", prefix)
+      .maybeSingle();
+
+    let next = 1;
+
+    if (!data) {
+      // prefix ještě neexistuje → založit nový counter
+      const { data: inserted, error: insertErr } = await supabaseClient
+        .from("serial_counters")
+        .insert({ prefix, current_serial: 1 })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error("Chyba zakládání prefixu:", insertErr);
+        alert("Chyba generování serialu.");
+        return;
+      }
+
+      next = 1;
+    } else {
+      next = data.current_serial + 1;
+
+      const { error: updateErr } = await supabaseClient
+        .from("serial_counters")
+        .update({ current_serial: next })
+        .eq("id", data.id);
+
+      if (updateErr) {
+        console.error("Chyba update counteru:", updateErr);
+        alert("Chyba generování serialu.");
+        return;
+      }
+    }
+
+    finalSerial = `${prefix}-${String(next).padStart(4, "0")}`;
+  }
+
+  // --- 3) DM GENERATOR
+  if (!dmEnabled) {
+    finalDM = "";
+  } else {
+    finalDM = serialEnabled ? finalSerial : prefix;
+  }
+
+  // --- 4) ZAPSAT DO UI
+  document.getElementById("dm-content").value = finalDM;
+
+  console.log("➡️ Vygenerovaný DM:", finalDM);
+
+  updatePreview();
+}
 
   let next = 1;
 
