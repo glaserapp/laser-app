@@ -60,20 +60,22 @@
 
 
         <!-- ░░ SÉRIOVÉ ČÍSLO / DM KÓD ░░ -->
+
         <label class="field">
-    <span>Povolit DataMatrix</span>
-    <input id="dm-enable" type="checkbox" checked>
-</label>
+            <span>Povolit DataMatrix</span>
+            <input id="dm-enable" type="checkbox" checked>
+        </label>
 
-<label class="field">
-    <span>Použít sériové číslo</span>
-    <input id="serial-enable" type="checkbox" checked>
-</label>
+        <label class="field">
+            <span>Použít sériové číslo</span>
+            <input id="serial-enable" type="checkbox" checked>
+        </label>
 
-<label class="field" id="dm-content-block">
-    <span>Obsah DM kódu</span>
-    <input id="dm-content" type="text" placeholder="např. AH01-0002">
-</label>
+        <label class="field" id="dm-content-block">
+            <span>Obsah DM kódu</span>
+            <input id="dm-content" type="text" placeholder="např. AH01-0002">
+        </label>
+
         <section class="panel premium-panel">
             <h2>🔢 Sériové číslo</h2>
 
@@ -91,13 +93,14 @@
         </section>
 
 
-        <!-- ░░ EXPORT ░░ -->
+        <!-- ░░ ULOŽIT / EXPORT ░░ -->
+
         <section class="panel premium-panel">
-            <!-- ➕ ULOŽIT NÁSTROJ -->
-<section class="panel premium-panel">
-    <h2>💾 Uložit nástroj</h2>
-    <button class="btn blue" onclick="saveTool()">Uložit nástroj</button>
-</section>
+            <h2>💾 Uložit nástroj</h2>
+            <button class="btn blue" onclick="saveTool()">Uložit nástroj</button>
+        </section>
+
+        <section class="panel premium-panel">
             <h2>📦 Export</h2>
             <button class="btn green" onclick="exportLabel()">Exportovat štítek</button>
         </section>
@@ -116,8 +119,9 @@
 
 </div>
 
+<!-- ✓ SPRÁVNÉ POŘADÍ: nejdřív Supabase, potom script.js -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
 <script src="script.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.39.4/dist/umd/supabase.min.js"></script>
-<script src="script.js"></script>
+
 </body>
 </html>
