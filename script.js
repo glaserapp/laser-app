@@ -56,7 +56,7 @@ async function generateSerial() {
 
   // SERIAL zapnutý
   else {
-    const { data, error } = await supabaseClient
+    const { data } = await supabaseClient
       .from("serial_counters")
       .select("*")
       .eq("prefix", prefix)
@@ -65,32 +65,20 @@ async function generateSerial() {
     let next = 1;
 
     if (!data) {
-      const { data: inserted, error: insertErr } = await supabaseClient
+      // nový prefix
+      await supabaseClient
         .from("serial_counters")
-        .insert({ prefix, current_serial: 1 })
-        .select()
-        .single();
-
-      if (insertErr) {
-        console.error("Chyba zakládání prefixu:", insertErr);
-        alert("Chyba generování serialu.");
-        return;
-      }
+        .insert({ prefix, current_serial: 1 });
 
       next = 1;
     } else {
+      // prefix existuje
       next = data.current_serial + 1;
 
-      const { error: updateErr } = await supabaseClient
+      await supabaseClient
         .from("serial_counters")
         .update({ current_serial: next })
         .eq("id", data.id);
-
-      if (updateErr) {
-        console.error("Chyba aktualizace counteru:", updateErr);
-        alert("Chyba generování serialu.");
-        return;
-      }
     }
 
     finalSerial = `${prefix}-${String(next).padStart(4, "0")}`;
@@ -102,7 +90,6 @@ async function generateSerial() {
     : "";
 
   document.getElementById("dm-content").value = finalDM;
-
   updatePreview();
 }
 
@@ -135,7 +122,6 @@ async function saveTool() {
   const name = document.getElementById("tool-name").value.trim();
   const diameter = parseFloat(document.getElementById("diameter").value);
   const length = parseFloat(document.getElementById("length").value);
-
   const serialEnabled = document.getElementById("serial-enable").checked;
   const dmEnabled = document.getElementById("dm-enable").checked;
   const dmContent = document.getElementById("dm-content").value.trim();
@@ -155,7 +141,7 @@ async function saveTool() {
     dm_code: dmContent
   };
 
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from("tools")
     .insert(insertData);
 
@@ -163,33 +149,28 @@ async function saveTool() {
     console.error("❌ Chyba při ukládání:", error);
     alert("⚠️ Chyba ukládání do databáze.");
   } else {
-    console.log("✅ Uloženo:", data);
     alert("✅ Nástroj úspěšně uložen!");
   }
 }
+
 /************************************************************
- * EXPORT LABEL (placeholder)
+ * EXPORT LABEL
  ************************************************************/
 function exportLabel() {
-  alert("Export štítku zatím není implementován.");
+  alert("Export zatím není implementován.");
 }
+
 /************************************************************
- * INIT – EVENTS
+ * INIT
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
   loadCustomers();
 
-  [
-    "tool-name",
-    "diameter",
-    "length",
-    "dm-content",
-    "dm-enable",
-    "serial-enable"
-  ].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("input", updatePreview);
-  });
+  ["tool-name","diameter","length","dm-content"]
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updatePreview);
+    });
 
   updatePreview();
 });
