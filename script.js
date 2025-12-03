@@ -377,3 +377,51 @@ document.getElementById("regrinds").addEventListener("input", updatePreview);
 }
     }
 }
+/************************************************************
+ * ULOŽENÍ NÁSTROJE DO SUPABASE (tabulka tools)
+ ************************************************************/
+
+async function saveTool() {
+
+  console.log("▶ saveTool() spuštěno");
+
+  const customerPrefix = document.getElementById("customer-select").value;
+  const name = document.getElementById("tool-name").value.trim();
+  const diameter = parseFloat(document.getElementById("diameter").value);
+  const length = parseFloat(document.getElementById("length").value);
+  const regrinds = parseInt(document.getElementById("regrinds").value);
+
+  const serialEnabled = document.getElementById("serial-enable").checked;
+  const dmEnabled = document.getElementById("dm-enable").checked;
+  const dmContent = document.getElementById("dm-content").value.trim();
+
+  if (!name) {
+    alert("❗ Musíš zadat název nástroje.");
+    return;
+  }
+
+  const insertData = {
+    customer_prefix: customerPrefix,
+    name: name,
+    diameter: diameter,
+    length: length,
+    regrinds: regrinds,
+    serial_enabled: serialEnabled,
+    dm_enabled: dmEnabled,
+    dm_code: dmContent
+  };
+
+  console.log("📦 Odesílám do Supabase:", insertData);
+
+  const { data, error } = await supabase
+    .from("tools")
+    .insert(insertData);
+
+  if (error) {
+    console.error("❌ Chyba při ukládání:", error);
+    alert("⚠ Chyba při ukládání nástroje.");
+  } else {
+    console.log("✅ Uloženo:", data);
+    alert("✅ Nástroj úspěšně uložen!");
+  }
+}
