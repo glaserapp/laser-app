@@ -1,4 +1,109 @@
-// === Laser Label Builder – flexibilní základ ===
+/************************************************************
+ * SUPABASE – INITIALIZATION
+ ************************************************************/
+
+// Sem vlož své klíče:
+const SUPABASE_URL = https://ovylsagjaskidrmiiunu.supabase.co;
+const SUPABASE_ANON_KEY = sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy;
+
+// Vytvoření klienta
+const db = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+/************************************************************
+ * FETCH – ZÍSKÁNÍ ZÁKAZNÍKŮ Z DB
+ ************************************************************/
+async function loadCustomers() {
+    const { data, error } = await db
+        .from("customers")
+        .select("prefix, name")
+        .order("name", { ascending: true });
+
+    if (error) {
+        console.error("Chyba při načítání zákazníků:", error);
+        return;
+    }
+
+    // naplnění selectu v UI
+    const select = document.getElementById("customer-select");
+    select.innerHTML = "";
+
+    data.forEach(c => {
+        const opt = document.createElement("option");
+        opt.value = c.prefix;
+        opt.textContent = `${c.name} (${c.prefix})`;
+        select.appendChild(opt);
+    });
+}
+
+/************************************************************
+ * SERIAL NUMBER GENERATOR – z tabulky serial_counters
+ ************************************************************/
+async function generateSerial(prefix) {
+
+    // 1) Načti aktuální counter
+    let { data, error } = await db
+        .from("serial_counters")
+        .select("*")
+        .eq("prefix", prefix)
+        .maybeSingle();
+
+    if (error) {
+        console.error("Chyba načítání counter:", error);
+        return null;
+    }
+
+    // pokud neexistuje → vytvoř nový
+    if (!data) {
+        const { data: insertData, error: insertErr } = await db
+            .from("serial_counters")
+            .insert({ prefix: prefix, gtin: "NONE", current_serial: 1 })
+            .select()
+            .single();
+
+        if (insertErr) {
+            console.error("Chyba při zakládání counteru:", insertErr);
+            return null;
+        }
+
+        data = insertData;
+    }
+
+    const next = data.current_serial + 1;
+
+    // 2) zapiš zvýšenou hodnotu
+    const { error: updateErr } = await db
+        .from("serial_counters")
+        .update({ current_serial: next })
+        .eq("id", data.id);
+
+    if (updateErr) {
+        console.error("Chyba update counter:", updateErr);
+        return null;
+    }
+
+    // 3) vrať formát „PREFIX-0001“
+    return `${prefix}-${String(next).padStart(4, "0")}`;
+}
+
+/************************************************************
+ * SAVE MARKING JOB – uloží popis / šablonu do DB
+ ************************************************************/
+async function saveMarkingJob(jobData) {
+
+    const { error } = await db
+        .from("marking_jobs")
+        .insert(jobData);
+
+    if (error) {
+        console.error("Chyba ukládání úlohy:", error);
+        return false;
+    }
+
+    return true;
+}
+
+// Po načtení stránky načti zákazníky
+window.addEventListener("DOMContentLoaded", loadCustomers);// === Laser Label Builder – flexibilní základ ===
 
 document.addEventListener("DOMContentLoaded", () => {
   const customerSelect = document.getElementById("customer-select");
