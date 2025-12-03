@@ -49,32 +49,21 @@ async function generateSerial() {
   let finalSerial = "";
   let finalDM = "";
 
-  // SERIAL vypnutý
-  if (!serialEnabled) {
-    finalSerial = "";
-  }
-
-  // SERIAL zapnutý
-  else {
+  if (serialEnabled) {
     const { data } = await supabaseClient
       .from("serial_counters")
       .select("*")
       .eq("prefix", prefix)
       .maybeSingle();
 
-    let next = 1;
+    let next = data ? data.current_serial + 1 : 1;
 
     if (!data) {
-      // nový prefix
-      await supabaseClient
-        .from("serial_counters")
-        .insert({ prefix, current_serial: 1 });
-
-      next = 1;
+      await supabaseClient.from("serial_counters").insert({
+        prefix,
+        current_serial: 1
+      });
     } else {
-      // prefix existuje
-      next = data.current_serial + 1;
-
       await supabaseClient
         .from("serial_counters")
         .update({ current_serial: next })
@@ -84,10 +73,7 @@ async function generateSerial() {
     finalSerial = `${prefix}-${String(next).padStart(4, "0")}`;
   }
 
-  // DM kód
-  finalDM = dmEnabled
-    ? (serialEnabled ? finalSerial : prefix)
-    : "";
+  finalDM = dmEnabled ? (serialEnabled ? finalSerial : prefix) : "";
 
   document.getElementById("dm-content").value = finalDM;
   updatePreview();
@@ -116,8 +102,6 @@ function updatePreview() {
  * SAVE TOOL TO DATABASE
  ************************************************************/
 async function saveTool() {
-  console.log("▶ saveTool() spuštěno");
-
   const customerPrefix = document.getElementById("customer-select").value;
   const name = document.getElementById("tool-name").value.trim();
   const diameter = parseFloat(document.getElementById("diameter").value);
@@ -131,7 +115,7 @@ async function saveTool() {
     return;
   }
 
-  const insertData = {
+  const { error } = await supabaseClient.from("tools").insert({
     customer_prefix: customerPrefix,
     name,
     diameter,
@@ -139,11 +123,7 @@ async function saveTool() {
     serial_enabled: serialEnabled,
     dm_enabled: dmEnabled,
     dm_code: dmContent
-  };
-
-  const { error } = await supabaseClient
-    .from("tools")
-    .insert(insertData);
+  });
 
   if (error) {
     console.error("❌ Chyba při ukládání:", error);
@@ -154,10 +134,10 @@ async function saveTool() {
 }
 
 /************************************************************
- * EXPORT LABEL
+ * EXPORT LABEL (placeholder)
  ************************************************************/
 function exportLabel() {
-  alert("Export zatím není implementován.");
+  alert("Export není zatím implementován.");
 }
 
 /************************************************************
@@ -165,12 +145,5 @@ function exportLabel() {
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
   loadCustomers();
-
-  ["tool-name","diameter","length","dm-content"]
-    .forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.addEventListener("input", updatePreview);
-    });
-
   updatePreview();
 });
