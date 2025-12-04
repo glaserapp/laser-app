@@ -8,78 +8,102 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 /************************************************************
  * AUTOCOMPLETE – SEARCH CUSTOMERS
  ************************************************************/
-async function searchCustomers(text) {
+async function searchCustomers(query) {
+    if (!query) return [];
+
     const { data, error } = await supabaseClient
         .from("customers")
         .select("*")
-        .ilike("name", `%${text}%`)
+        .or(`name.ilike.%${query}%,prefix.ilike.%${query}%`)
         .order("name");
 
     if (error) {
-        console.error("Chyba vyhledávání:", error);
+        console.error("Chyba hledání zákazníka:", error);
         return [];
     }
 
-    return data || [];
+    return data;
 }
 
-function renderSuggestions(list, inputValue) {
+function renderSuggestions(list, query) {
     const box = document.getElementById("customer-suggestions");
     box.innerHTML = "";
 
-    if (list.length === 0 && inputValue.length >= 2) {
+    if (list.length === 0) {
         box.innerHTML = `
-            <div class="suggestion-new" onclick="createNewCustomer('${inputValue}')">
-                + Založit nového zákazníka: <strong>${inputValue}</strong>
-            </div>`;
+            <div class="suggestion-new" onclick="createNewCustomer('${query}')">
+                ➕ Založit nového zákazníka: <strong>${query}</strong>
+            </div>
+        `;
         box.classList.remove("hidden");
         return;
     }
 
-    list.forEach(item => {
+    list.forEach(cust => {
         const row = document.createElement("div");
         row.className = "suggestion-item";
-        row.textContent = `${item.name} (${item.prefix})`;
-        row.onclick = () => selectCustomer(item);
+        row.innerHTML = `
+            <strong>${cust.name}</strong><br>
+            <small>Prefix: ${cust.prefix}</small>
+        `;
+        row.onclick = () => selectCustomer(cust);
         box.appendChild(row);
     });
 
     box.classList.remove("hidden");
 }
 
+function selectCustomer(cust) {
+    document.getElementById("customer-search").value = cust.name;
+    document.getElementById("serial-prefix").value = cust.prefix;
+    document.getElementById("customer-suggestions").classList.add("hidden");
+}
+
 async function createNewCustomer(name) {
-    const prefix = generatePrefix(name);
+    const clean = name.trim();
+
+    // prefix = první 3 znaky + číslo
+    let base = clean.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, "");
+    if (!base) base = "CUST";
+
+    let prefix = base;
+    let counter = 1;
+    let exists = true;
+
+    while (exists) {
+        let trial = prefix + (counter === 1 ? "" : counter);
+
+        const { data } = await supabaseClient
+            .from("customers")
+            .select("prefix")
+            .eq("prefix", trial)
+            .maybeSingle();
+
+        if (!data) {
+            prefix = trial;
+            exists = false;
+        } else {
+            counter++;
+        }
+    }
 
     const { data, error } = await supabaseClient
         .from("customers")
-        .insert({ name, prefix })
+        .insert({ name: clean, prefix })
         .select()
         .single();
 
     if (error) {
-        alert("Chyba zakládání zákazníka");
+        alert("Chyba ukládání nového zákazníka");
+        console.error(error);
         return;
     }
 
-    document.getElementById("customer-search").value = data.name;
-    document.getElementById("customer-prefix").value = data.prefix;
-
-    document.getElementById("customer-suggestions").classList.add("hidden");
-}
-
-function generatePrefix(name) {
-    const clean = name.replace(/[^A-Za-z]/g, "").toUpperCase();
-    return clean.substring(0, 2) + String(Math.floor(Math.random() * 90 + 10));
-}
-
-function selectCustomer(item) {
-    document.getElementById("customer-search").value = item.name;
-    document.getElementById("customer-prefix").value = item.prefix;
-    document.getElementById("customer-suggestions").classList.add("hidden");
+    selectCustomer(data);
 }
 
 /************************************************************
- * SERIAL GENERATION
+ * GENERATE SERIAL + DM
  ************************************************************/
 async function generateSerial() {
     const prefix = document.getElementById("serial-prefix").value.trim();
@@ -101,37 +125,33 @@ async function generateSerial() {
     let next = data ? data.current_serial + 1 : 1;
 
     if (!data) {
-        await supabaseClient.from("serial_counters").insert({
-            prefix,
-            current_serial: 1
-        });
+        await supabaseClient.from("serial_counters")
+            .insert({ prefix, current_serial: 1 });
     } else {
-        await supabaseClient
-            .from("serial_counters")
+        await supabaseClient.from("serial_counters")
             .update({ current_serial: next })
             .eq("id", data.id);
     }
 
     const serial = `${prefix}-${String(next).padStart(4, "0")}`;
-    document.getElementById("dm-content").value =
-        dmEnabled ? serial : prefix;
+    document.getElementById("dm-content").value = dmEnabled ? serial : prefix;
 
     updatePreview();
 }
 
 /************************************************************
- * PREVIEW UPDATE
+ * PREVIEW
  ************************************************************/
 function updatePreview() {
-    const toolName = document.getElementById("tool-name").value;
-    const diameter = document.getElementById("diameter").value;
-    const length = document.getElementById("length").value;
-    const dmContent = document.getElementById("dm-content").value;
+    const name = document.getElementById("tool-name").value;
+    const d = document.getElementById("diameter").value;
+    const L = document.getElementById("length").value;
+    const dm = document.getElementById("dm-content").value;
 
     document.getElementById("preview-area").innerHTML = `
-        <strong>${toolName}</strong><br>
-        Ø${diameter} × ${length} mm<br><br>
-        ${dmContent ? `<strong>DM:</strong> ${dmContent}` : ""}
+        <strong>${name}</strong><br>
+        Ø${d} × ${L} mm<br><br>
+        ${dm ? `<strong>DM:</strong> ${dm}` : ""}
     `;
 }
 
@@ -139,8 +159,8 @@ function updatePreview() {
  * SAVE TOOL
  ************************************************************/
 async function saveTool() {
-    const insertData = {
-        customer_prefix: document.getElementById("customer-prefix").value,
+    const insert = {
+        customer_prefix: document.getElementById("serial-prefix").value.trim(),
         name: document.getElementById("tool-name").value.trim(),
         diameter: parseFloat(document.getElementById("diameter").value) || null,
         length: parseFloat(document.getElementById("length").value) || null,
@@ -150,13 +170,10 @@ async function saveTool() {
         customer_tool_id: document.getElementById("customer-tool-id").value.trim() || null
     };
 
-    const { error } = await supabaseClient.from("tools").insert(insertData);
+    const { error } = await supabaseClient.from("tools").insert(insert);
 
-    if (error) {
-        alert("Chyba ukládání.");
-    } else {
-        alert("Nástroj uložen!");
-    }
+    if (error) alert("Chyba ukládání nástroje");
+    else alert("Nástroj byl uložen!");
 }
 
 /************************************************************
@@ -166,13 +183,13 @@ window.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("customer-search");
 
     input.addEventListener("input", async () => {
-        const text = input.value.trim();
-        if (text.length < 1) {
+        const q = input.value.trim();
+        if (q.length < 1) {
             document.getElementById("customer-suggestions").classList.add("hidden");
             return;
         }
-        const res = await searchCustomers(text);
-        renderSuggestions(res, text);
+        const res = await searchCustomers(q);
+        renderSuggestions(res, q);
     });
 
     updatePreview();
