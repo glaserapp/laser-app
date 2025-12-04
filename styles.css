@@ -117,3 +117,103 @@ h1 {
     font-style: italic;
     font-size: 16px;
 }
+
+/* ================================
+   AUTOCOMPLETE – Customer Search
+   ================================ */
+
+.customer-search-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+#customer-search {
+    width: 100%;
+    padding: 8px 10px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+}
+
+#customer-suggestions {
+    position: absolute;
+    top: 40px;
+    left: 0;
+    width: 100%;
+    background: #ffffff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 9999;
+}
+
+.suggestion-item,
+.suggestion-new {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.suggestion-item:hover {
+    background: #f2f2f2;
+}
+
+.suggestion-new {
+    background: #eef9ff;
+    color: #006aa8;
+    border-top: 1px solid #d0d0d0;
+    font-weight: 600;
+}
+
+.suggestion-new:hover {
+    background: #dff2ff;
+}
+
+/* ================================
+   SIDEBAR & LAYOUT IMPROVEMENTS
+   ================================ */
+
+.sidebar label {
+    display: block;
+    margin-top: 8px;
+    font-weight: 600;
+}
+
+.sidebar input,
+.sidebar select {
+    width: 100%;
+    padding: 6px 8px;
+    margin-top: 3px;
+    margin-bottom: 10px;
+    border-radius: 6px;
+    border: 1px solid #cfcfcf;
+    font-size: 15px;
+}
+
+.sidebar button {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    background: #1984ff;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 8px;
+}
+
+.sidebar button:hover {
+    background: #0f6bd4;
+}
+
+/* Náhled */
+.preview-box {
+    background: white;
+    border-radius: 10px;
+    min-height: 180px;
+    padding: 20px;
+    border: 1px solid #ddd;
+}
