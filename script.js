@@ -99,7 +99,7 @@ function updatePreview() {
 }
 
 /************************************************************
- * SAVE TOOL TO DATABASE (final version)
+ * SAVE TOOL TO DATABASE — S INTERNAL TOOL ID
  ************************************************************/
 async function saveTool() {
   console.log("▶ saveTool() spuštěno");
@@ -113,30 +113,27 @@ async function saveTool() {
   const dmEnabled = document.getElementById("dm-enable").checked;
   const dmContent = document.getElementById("dm-content").value.trim();
 
-  // 📌 nové pole – volitelné ID nástroje u zákazníka
-  const customerToolId = document.getElementById("customer-tool-id")
-    ? document.getElementById("customer-tool-id").value.trim()
-    : null;
+  // 📌 volitelné ID nástroje u zákazníka
+  const customerToolId =
+    document.getElementById("customer-tool-id")?.value.trim() || null;
 
-  // VALIDACE
   if (!name) {
     alert("❗ Musíš zadat název nástroje.");
     return;
   }
 
-  // 📦 DATA K ULOŽENÍ
   const insertData = {
     customer_prefix: customerPrefix,
-    name: name,
+    name,
     diameter: diameter || null,
     length: length || null,
     serial_enabled: serialEnabled,
     dm_enabled: dmEnabled,
     dm_code: dmContent || null,
-    customer_tool_id: customerToolId || null   // ← NOVÉ POLE
+    customer_tool_id: customerToolId          // ← NOVÉ POLE
   };
 
-  console.log("📦 Odesílám do DB:", insertData);
+  console.log("📦 Ukládám:", insertData);
 
   const { data, error } = await supabaseClient
     .from("tools")
@@ -147,14 +144,6 @@ async function saveTool() {
     alert("⚠️ Chyba ukládání do databáze.");
   } else {
     console.log("✅ Uloženo:", data);
-    alert("✅ Nástroj úspěšně uložen!");
-  }
-}
-
-  if (error) {
-    console.error("❌ Chyba při ukládání:", error);
-    alert("⚠️ Chyba ukládání do databáze.");
-  } else {
     alert("✅ Nástroj úspěšně uložen!");
   }
 }
