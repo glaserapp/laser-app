@@ -15,21 +15,16 @@
         <h1>Laser Label Builder</h1>
         <p>Nultá verze · Offline demo</p>
 
-        <!-- 🧩 ZÁKAZNÍK – NOVÁ LOGIKA -->
+        <!-- ZÁKAZNÍK – AUTOCOMPLETE -->
         <h2>🧩 Zákazník</h2>
 
-        <!-- 1) Vyhledávací pole -->
-        <label>Vyhledej zákazníka</label>
-        <input id="customer-search"
-               type="text"
-               placeholder="Začni psát název firmy... (např. ARGO)"
-               autocomplete="off">
+        <div class="customer-search-wrapper">
+            <input id="customer-search" type="text" placeholder="Začni psát název firmy…">
+            <div id="customer-suggestions" class="hidden"></div>
+        </div>
 
-        <!-- 2) Nášeptávač (dynamicky generovaný JS) -->
-        <div id="customer-suggestions" class="suggestions-box"></div>
-
-        <!-- 3) PŮVODNÍ SELECT (skrytý, ale nutný pro současný kód) -->
-        <select id="customer-select" style="display:none;"></select>
+        <label>Prefix zákazníka</label>
+        <input id="customer-prefix" type="text" placeholder="např. AH01">
 
         <!-- Parametry nástroje -->
         <h2>🛠 Parametry nástroje</h2>
@@ -44,9 +39,7 @@
         <input id="length" type="number">
 
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
-        <input id="customer-tool-id"
-               type="text"
-               placeholder="např. 540-887-0021">
+        <input id="customer-tool-id" type="text" placeholder="např. 540-887-0021">
 
         <!-- DM & Sériové číslo -->
         <h2>🔢 DM & Sériové číslo</h2>
@@ -68,7 +61,7 @@
 
         <!-- Export -->
         <h2>📦 Export</h2>
-        <button>Exportovat štítek</button>
+        <button onclick="exportLabel()">Exportovat štítek</button>
     </div>
 
     <!-- MAIN AREA -->
