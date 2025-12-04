@@ -3,12 +3,15 @@
  ************************************************************/
 const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
+
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /************************************************************
- * AUTOCOMPLETE – SEARCH CUSTOMERS
+ * AUTOCOMPLETE – ZÁKAZNÍK
  ************************************************************/
 async function searchCustomers(text) {
+  if (!text) return [];
+
   const { data, error } = await supabaseClient
     .from("customers")
     .select("*")
@@ -16,7 +19,7 @@ async function searchCustomers(text) {
     .order("name");
 
   if (error) {
-    console.error("Chyba vyhledávání:", error);
+    console.error("❌ Chyba vyhledávání zákazníků:", error);
     return [];
   }
 
@@ -27,15 +30,17 @@ function renderSuggestions(list, inputValue) {
   const box = document.getElementById("customer-suggestions");
   box.innerHTML = "";
 
+  // žádný výsledek → nabídni založení nového
   if (list.length === 0 && inputValue.length >= 2) {
     box.innerHTML = `
-      <div class="suggestion-new" onclick="createNewCustomer('${inputValue}')">
+      <div class="suggestion-new" onclick="createNewCustomer('${inputValue.replace(/'/g, "\\'")}')">
         + Založit nového zákazníka: <strong>${inputValue}</strong>
       </div>`;
     box.classList.remove("hidden");
     return;
   }
 
+  // výpis nalezených zákazníků
   list.forEach(item => {
     const row = document.createElement("div");
     row.className = "suggestion-item";
@@ -44,7 +49,17 @@ function renderSuggestions(list, inputValue) {
     box.appendChild(row);
   });
 
-  box.classList.remove("hidden");
+  if (list.length > 0) {
+    box.classList.remove("hidden");
+  } else {
+    box.classList.add("hidden");
+  }
+}
+
+function generatePrefix(name) {
+  const clean = name.replace(/[^A-Za-z]/g, "").toUpperCase();
+  if (!clean) return "CUST" + String(Math.floor(Math.random() * 90 + 10));
+  return clean.substring(0, 2) + String(Math.floor(Math.random() * 90 + 10));
 }
 
 async function createNewCustomer(name) {
@@ -57,47 +72,57 @@ async function createNewCustomer(name) {
     .single();
 
   if (error) {
-    console.error("Chyba zakládání zákazníka:", error);
-    alert("Chyba zakládání zákazníka");
+    console.error("❌ Chyba zakládání zákazníka:", error);
+    alert("Chyba při zakládání zákazníka.");
     return;
   }
 
-  document.getElementById("customer-search").value = data.name;
-  document.getElementById("customer-prefix").value = data.prefix;
-  document.getElementById("customer-suggestions").classList.add("hidden");
-}
-
-function generatePrefix(name) {
-  const clean = name.replace(/[^A-Za-z]/g, "").toUpperCase();
-  return clean.substring(0, 2) + String(Math.floor(Math.random() * 90 + 10));
+  selectCustomer(data); // znovu využijeme stejnou logiku
 }
 
 function selectCustomer(item) {
-  document.getElementById("customer-search").value = item.name;
-  document.getElementById("customer-prefix").value = item.prefix;
+  const searchInput = document.getElementById("customer-search");
+  const prefixInput = document.getElementById("customer-prefix");
+  const serialPrefixInput = document.getElementById("serial-prefix");
+
+  searchInput.value = item.name;
+  prefixInput.value = item.prefix;
+  serialPrefixInput.value = item.prefix;        // 🔁 AUTOFILL prefixu pro sériové číslo
+
   document.getElementById("customer-suggestions").classList.add("hidden");
 }
 
 /************************************************************
- * SERIAL GENERATION
+ * GENEROVÁNÍ SÉRIOVÉHO ČÍSLA + DM
  ************************************************************/
 async function generateSerial() {
-  const prefix = document.getElementById("serial-prefix").value.trim();
   const serialEnabled = document.getElementById("serial-enable").checked;
   const dmEnabled = document.getElementById("dm-enable").checked;
+
+  const serialPrefixInput = document.getElementById("serial-prefix");
+  const customerPrefixInput = document.getElementById("customer-prefix");
+
+  // když není vyplněn prefix pro sérii, zkus prefix zákazníka
+  if (!serialPrefixInput.value.trim() && customerPrefixInput.value.trim()) {
+    serialPrefixInput.value = customerPrefixInput.value.trim();
+  }
+
+  const prefix = serialPrefixInput.value.trim();
+  const dmContentInput = document.getElementById("dm-content");
+
+  // pokud sériové číslo nepoužíváme
+  if (!serialEnabled) {
+    dmContentInput.value = dmEnabled ? prefix : "";
+    updatePreview();
+    return;
+  }
 
   if (!prefix) {
     alert("Zadej prefix pro sériové číslo.");
     return;
   }
 
-  // pokud nechceme sériové číslo, jen DM = prefix
-  if (!serialEnabled) {
-    document.getElementById("dm-content").value = dmEnabled ? prefix : "";
-    updatePreview();
-    return;
-  }
-
+  // načti / navýš counter pro daný prefix
   const { data, error } = await supabaseClient
     .from("serial_counters")
     .select("*")
@@ -105,130 +130,148 @@ async function generateSerial() {
     .maybeSingle();
 
   if (error) {
-    console.error("Chyba při čtení serial_counters:", error);
+    console.error("❌ Chyba při čtení serial_counters:", error);
+    alert("Chyba při generování sériového čísla.");
+    return;
   }
 
   let next = data ? data.current_serial + 1 : 1;
 
   if (!data) {
-    await supabaseClient
+    const { error: insErr } = await supabaseClient
       .from("serial_counters")
       .insert({ prefix, current_serial: 1 });
+
+    if (insErr) {
+      console.error("❌ Chyba insert serial_counters:", insErr);
+      alert("Chyba při generování sériového čísla.");
+      return;
+    }
   } else {
-    await supabaseClient
+    const { error: updErr } = await supabaseClient
       .from("serial_counters")
       .update({ current_serial: next })
       .eq("id", data.id);
+
+    if (updErr) {
+      console.error("❌ Chyba update serial_counters:", updErr);
+      alert("Chyba při generování sériového čísla.");
+      return;
+    }
   }
 
   const serial = `${prefix}-${String(next).padStart(4, "0")}`;
+  dmContentInput.value = dmEnabled ? serial : prefix;
 
-  document.getElementById("dm-content").value = dmEnabled ? serial : prefix;
   updatePreview();
 }
 
 /************************************************************
- * PREVIEW – GEOMETRIE STOPKY + DM KÓDU
+ * NÁHLED ŠTÍTKU
  ************************************************************/
 function updatePreview() {
   const toolName = document.getElementById("tool-name").value.trim();
-  const diameterMm =
-    parseFloat(document.getElementById("diameter").value) || 10;   // průměr stopky
-  const lengthMm =
-    parseFloat(document.getElementById("length").value) || 50;     // délka stopky
+  const diameter = parseFloat(document.getElementById("diameter").value) || 0;
+  const length = parseFloat(document.getElementById("length").value) || 0;
   const dmContent = document.getElementById("dm-content").value.trim();
-  const customerToolId =
-    document.getElementById("customer-tool-id").value.trim() || "";
 
   const preview = document.getElementById("preview-area");
 
-  // základní scale: 1 mm = 20 px, ale omezíme velikost náhledu
-  const PX_PER_MM_BASE = 20;
-  const MAX_W = 260;
-  const MAX_H = 400;
+  // přepočet mm → px (1 mm = 20 px)
+  const scale = 20;
+  let pxWidth = length * scale;
+  let pxHeight = diameter * scale;
 
-  let scale = PX_PER_MM_BASE;
-  if (diameterMm * scale > MAX_W || lengthMm * scale > MAX_H) {
-    const sW = MAX_W / diameterMm;
-    const sH = MAX_H / lengthMm;
-    scale = Math.min(sW, sH);
+  // kdyby to bylo extrémně velké, trochu stáhneme měřítko
+  const maxPx = 400;
+  const maxDim = Math.max(pxWidth, pxHeight);
+  if (maxDim > maxPx && maxDim > 0) {
+    const factor = maxPx / maxDim;
+    pxWidth = pxWidth * factor;
+    pxHeight = pxHeight * factor;
   }
 
-  const shaftWidth = diameterMm * scale;
-  const shaftHeight = lengthMm * scale;
-
-  // DM kód jako obdélník: výška max 60 % průměru, max 4 mm
-  const dmHeightMm = Math.min(diameterMm * 0.6, 4);
-  const dmWidthMm = dmHeightMm * 3; // obdélník, 3:1
-  const dmW = dmWidthMm * scale;
-  const dmH = dmHeightMm * scale;
-
-  // střed obdélníku na šířku stopky, zhruba uprostřed délky
-  const dmTop = shaftHeight / 2 - dmH / 2;
-  const dmLeft = shaftWidth / 2 - dmW / 2;
+  const dmSize = Math.min(pxHeight * 0.6, pxWidth * 0.4); // obdélník ~ uprostřed
 
   preview.innerHTML = `
-    <div class="shaft" style="width:${shaftWidth}px; height:${shaftHeight}px;">
-      <div class="dm-code"
-           style="
-             width:${dmW}px;
-             height:${dmH}px;
-             top:${dmTop}px;
-             left:${dmLeft}px;
-           ">
-      </div>
+    <div style="
+      width:${pxWidth || 200}px;
+      height:${pxHeight || 120}px;
+      border-radius:${pxHeight / 2 || 60}px;
+      background: radial-gradient(circle at 30% 0%, #ffffff, #cfcfcf);
+      margin:auto;
+      position:relative;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    ">
+      <!-- DM obdélník -->
+      <div style="
+        width:${dmSize || 80}px;
+        height:${dmSize * 0.6 || 48}px;
+        background:#111;
+        border-radius:6px;
+      "></div>
     </div>
 
-    <div class="label-text">
-      ${toolName ? `<div>${toolName}</div>` : ""}
-      ${customerToolId ? `<div>${customerToolId}</div>` : ""}
-      ${dmContent ? `<div><strong>DM:</strong> ${dmContent}</div>` : ""}
+    <div style="text-align:center; margin-top:16px; font-size:14px;">
+      <div style="font-weight:600;">${toolName || "&nbsp;"}</div>
+      <div>${document.getElementById("customer-tool-id").value.trim() || "&nbsp;"}</div>
+      <div style="margin-top:4px;">
+        <strong>DM:</strong> ${dmContent || "&nbsp;"}
+      </div>
     </div>
   `;
 }
 
 /************************************************************
- * SAVE TOOL
+ * ULOŽENÍ NÁSTROJE
  ************************************************************/
 async function saveTool() {
+  const name = document.getElementById("tool-name").value.trim();
+  if (!name) {
+    alert("Musíš zadat název nástroje.");
+    return;
+  }
+
   const insertData = {
     customer_prefix: document.getElementById("customer-prefix").value.trim(),
-    name: document.getElementById("tool-name").value.trim(),
+    name,
     diameter: parseFloat(document.getElementById("diameter").value) || null,
     length: parseFloat(document.getElementById("length").value) || null,
-    dm_code: document.getElementById("dm-content").value.trim(),
-    dm_enabled: document.getElementById("dm-enable").checked,
     serial_enabled: document.getElementById("serial-enable").checked,
-    customer_tool_id:
-      document.getElementById("customer-tool-id").value.trim() || null
+    dm_enabled: document.getElementById("dm-enable").checked,
+    dm_code: document.getElementById("dm-content").value.trim() || null,
+    customer_tool_id: document.getElementById("customer-tool-id").value.trim() || null
   };
 
   const { error } = await supabaseClient.from("tools").insert(insertData);
 
   if (error) {
-    console.error("Chyba ukládání:", error);
-    alert("Chyba ukládání.");
+    console.error("❌ Chyba ukládání:", error);
+    alert("Chyba ukládání: " + (error.message || ""));
   } else {
-    alert("Nástroj uložen!");
+    alert("✅ Nástroj uložen.");
   }
 }
 
 /************************************************************
- * EXPORT LABEL (placeholder)
+ * EXPORT – zatím jen placeholder
  ************************************************************/
 function exportLabel() {
-  alert("Export není zatím implementován.");
+  alert("Export štítku zatím není implementovaný.");
 }
 
 /************************************************************
  * INIT
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
-  const input = document.getElementById("customer-search");
+  const searchInput = document.getElementById("customer-search");
 
-  input.addEventListener("input", async () => {
-    const text = input.value.trim();
-    if (text.length < 1) {
+  searchInput.addEventListener("input", async () => {
+    const text = searchInput.value.trim();
+    if (!text) {
       document.getElementById("customer-suggestions").classList.add("hidden");
       return;
     }
@@ -236,13 +279,11 @@ window.addEventListener("DOMContentLoaded", () => {
     renderSuggestions(res, text);
   });
 
-  // při psaní parametrů hned aktualizuj náhled
-  ["tool-name", "diameter", "length", "dm-content", "customer-tool-id"].forEach(
-    id => {
-      const el = document.getElementById(id);
-      el.addEventListener("input", updatePreview);
-    }
-  );
+  // aktualizace náhledu při změně polí
+  ["tool-name", "diameter", "length", "customer-tool-id", "dm-content"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("input", updatePreview);
+  });
 
   updatePreview();
 });
