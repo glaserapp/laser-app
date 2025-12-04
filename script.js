@@ -40,7 +40,6 @@ function renderSuggestions(list, inputValue) {
     return;
   }
 
-  // výpis nalezených zákazníků
   list.forEach(item => {
     const row = document.createElement("div");
     row.className = "suggestion-item";
@@ -49,11 +48,7 @@ function renderSuggestions(list, inputValue) {
     box.appendChild(row);
   });
 
-  if (list.length > 0) {
-    box.classList.remove("hidden");
-  } else {
-    box.classList.add("hidden");
-  }
+  box.classList.toggle("hidden", list.length === 0);
 }
 
 function generatePrefix(name) {
@@ -77,23 +72,21 @@ async function createNewCustomer(name) {
     return;
   }
 
-  selectCustomer(data); // znovu využijeme stejnou logiku
+  selectCustomer(data);
 }
 
 function selectCustomer(item) {
-  const searchInput = document.getElementById("customer-search");
-  const prefixInput = document.getElementById("customer-prefix");
-  const serialPrefixInput = document.getElementById("serial-prefix");
+  document.getElementById("customer-search").value = item.name;
+  document.getElementById("customer-prefix").value = item.prefix;
 
-  searchInput.value = item.name;
-  prefixInput.value = item.prefix;
-  serialPrefixInput.value = item.prefix;        // 🔁 AUTOFILL prefixu pro sériové číslo
+  // autofill sériového prefixu
+  document.getElementById("serial-prefix").value = item.prefix;
 
   document.getElementById("customer-suggestions").classList.add("hidden");
 }
 
 /************************************************************
- * GENEROVÁNÍ SÉRIOVÉHO ČÍSLA + DM
+ * GENEROVÁNÍ SÉRIOVÉHO ČÍSLA – PŘES RPC FUNKCI
  ************************************************************/
 async function generateSerial() {
   const serialEnabled = document.getElementById("serial-enable").checked;
@@ -101,16 +94,16 @@ async function generateSerial() {
 
   const serialPrefixInput = document.getElementById("serial-prefix");
   const customerPrefixInput = document.getElementById("customer-prefix");
+  const dmContentInput = document.getElementById("dm-content");
 
-  // když není vyplněn prefix pro sérii, zkus prefix zákazníka
+  // autofill prefixu
   if (!serialPrefixInput.value.trim() && customerPrefixInput.value.trim()) {
     serialPrefixInput.value = customerPrefixInput.value.trim();
   }
 
   const prefix = serialPrefixInput.value.trim();
-  const dmContentInput = document.getElementById("dm-content");
 
-  // pokud sériové číslo nepoužíváme
+  // sériové číslo nepoužíváme
   if (!serialEnabled) {
     dmContentInput.value = dmEnabled ? prefix : "";
     updatePreview();
@@ -122,46 +115,24 @@ async function generateSerial() {
     return;
   }
 
-  // načti / navýš counter pro daný prefix
-  const { data, error } = await supabaseClient
-    .from("serial_counters")
-    .select("*")
-    .eq("prefix", prefix)
-    .maybeSingle();
+  /************************************************************
+   * 🔥 CALL RPC reserve_serial(prefix)
+   ************************************************************/
+  const { data, error } = await supabaseClient.rpc("reserve_serial", {
+    p_prefix: prefix
+  });
 
   if (error) {
-    console.error("❌ Chyba při čtení serial_counters:", error);
+    console.error("❌ Chyba RPC reserve_serial:", error);
     alert("Chyba při generování sériového čísla.");
     return;
   }
 
-  let next = data ? data.current_serial + 1 : 1;
+  const nextSerial = data; // integer
+  const formatted = String(nextSerial).padStart(4, "0");
+  const serialFull = `${prefix}-${formatted}`;
 
-  if (!data) {
-    const { error: insErr } = await supabaseClient
-      .from("serial_counters")
-      .insert({ prefix, current_serial: 1 });
-
-    if (insErr) {
-      console.error("❌ Chyba insert serial_counters:", insErr);
-      alert("Chyba při generování sériového čísla.");
-      return;
-    }
-  } else {
-    const { error: updErr } = await supabaseClient
-      .from("serial_counters")
-      .update({ current_serial: next })
-      .eq("id", data.id);
-
-    if (updErr) {
-      console.error("❌ Chyba update serial_counters:", updErr);
-      alert("Chyba při generování sériového čísla.");
-      return;
-    }
-  }
-
-  const serial = `${prefix}-${String(next).padStart(4, "0")}`;
-  dmContentInput.value = dmEnabled ? serial : prefix;
+  dmContentInput.value = dmEnabled ? serialFull : prefix;
 
   updatePreview();
 }
@@ -177,21 +148,20 @@ function updatePreview() {
 
   const preview = document.getElementById("preview-area");
 
-  // přepočet mm → px (1 mm = 20 px)
   const scale = 20;
   let pxWidth = length * scale;
   let pxHeight = diameter * scale;
 
-  // kdyby to bylo extrémně velké, trochu stáhneme měřítko
+  // dynamické škálování
   const maxPx = 400;
   const maxDim = Math.max(pxWidth, pxHeight);
   if (maxDim > maxPx && maxDim > 0) {
     const factor = maxPx / maxDim;
-    pxWidth = pxWidth * factor;
-    pxHeight = pxHeight * factor;
+    pxWidth *= factor;
+    pxHeight *= factor;
   }
 
-  const dmSize = Math.min(pxHeight * 0.6, pxWidth * 0.4); // obdélník ~ uprostřed
+  const dmSize = Math.min(pxHeight * 0.6, pxWidth * 0.4);
 
   preview.innerHTML = `
     <div style="
@@ -206,10 +176,9 @@ function updatePreview() {
       justify-content:center;
       box-shadow: 0 8px 24px rgba(0,0,0,0.12);
     ">
-      <!-- DM obdélník -->
       <div style="
         width:${dmSize || 80}px;
-        height:${dmSize * 0.6 || 48}px;
+        height:${(dmSize * 0.6) || 48}px;
         background:#111;
         border-radius:6px;
       "></div>
@@ -230,10 +199,7 @@ function updatePreview() {
  ************************************************************/
 async function saveTool() {
   const name = document.getElementById("tool-name").value.trim();
-  if (!name) {
-    alert("Musíš zadat název nástroje.");
-    return;
-  }
+  if (!name) return alert("Musíš zadat název nástroje.");
 
   const insertData = {
     customer_prefix: document.getElementById("customer-prefix").value.trim(),
@@ -250,14 +216,14 @@ async function saveTool() {
 
   if (error) {
     console.error("❌ Chyba ukládání:", error);
-    alert("Chyba ukládání: " + (error.message || ""));
+    alert("Chyba ukládání: " + error.message);
   } else {
     alert("✅ Nástroj uložen.");
   }
 }
 
 /************************************************************
- * EXPORT – zatím jen placeholder
+ * EXPORT (zatím placeholder)
  ************************************************************/
 function exportLabel() {
   alert("Export štítku zatím není implementovaný.");
@@ -279,11 +245,11 @@ window.addEventListener("DOMContentLoaded", () => {
     renderSuggestions(res, text);
   });
 
-  // aktualizace náhledu při změně polí
-  ["tool-name", "diameter", "length", "customer-tool-id", "dm-content"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("input", updatePreview);
-  });
+  ["tool-name", "diameter", "length", "customer-tool-id", "dm-content"]
+    .forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.addEventListener("input", updatePreview);
+    });
 
   updatePreview();
 });
