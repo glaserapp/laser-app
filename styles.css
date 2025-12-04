@@ -1,4 +1,4 @@
-/* GLOBAL RESET */
+/* GLOBAL */
 * {
     margin: 0;
     padding: 0;
@@ -29,55 +29,30 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
-h1 {
-    font-size: 22px;
-    margin-bottom: 4px;
-}
-
-.subtitle {
-    font-size: 14px;
-    opacity: 0.6;
-}
-
-/* PANELS */
-.panel {
-    margin-top: 24px;
-}
-
-.panel h2 {
-    font-size: 18px;
-    margin-bottom: 10px;
-}
-
-/* FORMS */
 .sidebar label {
-    display: block;
-    margin-top: 8px;
+    margin-top: 10px;
     font-weight: 600;
 }
 
 .sidebar input,
 .sidebar select {
     width: 100%;
-    padding: 6px 8px;
-    margin-top: 3px;
-    margin-bottom: 10px;
+    padding: 8px;
     border-radius: 6px;
-    border: 1px solid #cfcfcf;
-    font-size: 15px;
+    border: 1px solid #ccc;
+    margin-top: 4px;
+    margin-bottom: 10px;
 }
 
-/* BUTTONS */
 .sidebar button {
     width: 100%;
     padding: 10px;
-    font-size: 15px;
-    font-weight: 600;
     background: #1984ff;
-    color: white;
     border: none;
     border-radius: 6px;
     cursor: pointer;
+    color: white;
+    font-weight: 600;
     margin-top: 8px;
 }
 
@@ -85,21 +60,17 @@ h1 {
     background: #0f6bd4;
 }
 
-/* PREVIEW */
-.workspace {
+/* MAIN */
+.main {
     flex: 1;
-    background: white;
-    padding: 30px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
 }
 
 .preview-box {
     background: white;
-    border-radius: 10px;
-    min-height: 180px;
     padding: 20px;
+    border-radius: 12px;
     border: 1px solid #ddd;
+    min-height: 180px;
 }
 
 /* AUTOCOMPLETE */
@@ -107,33 +78,25 @@ h1 {
     position: relative;
 }
 
-#customer-search {
-    width: 100%;
-    padding: 8px 10px;
-    font-size: 15px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
 #customer-suggestions {
     position: absolute;
-    top: 40px;
+    top: 45px;
     left: 0;
     width: 100%;
     background: white;
-    border: 1px solid #d0d0d0;
+    border: 1px solid #ddd;
     border-radius: 6px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     max-height: 220px;
     overflow-y: auto;
     z-index: 2000;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
 }
 
 .suggestion-item,
 .suggestion-new {
-    padding: 10px 12px;
+    padding: 10px;
     cursor: pointer;
-    font-size: 15px;
+    border-bottom: 1px solid #f0f0f0;
 }
 
 .suggestion-item:hover {
@@ -142,13 +105,8 @@ h1 {
 
 .suggestion-new {
     background: #eef9ff;
-    color: #006aa8;
     font-weight: 600;
-    border-top: 1px solid #d0d0d0;
-}
-
-.suggestion-new:hover {
-    background: #dff2ff;
+    color: #006aa8;
 }
 
 .hidden {
