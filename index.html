@@ -3,6 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <title>Laser Label Builder</title>
+
+    <!-- Supabase klient (nutný pro vyhledávání & ukládání) -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -19,14 +23,14 @@
         <h2>🧩 Zákazník</h2>
 
         <div class="customer-search-wrapper">
-            <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka">
+            <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka…">
             <div id="customer-suggestions" class="hidden"></div>
         </div>
 
         <label>Prefix zákazníka</label>
         <input id="customer-prefix" type="text" placeholder="např. AH01">
 
-        <!-- PARAMETRY NÁSTROJE (STOPKA) -->
+        <!-- PARAMETRY NÁSTROJE -->
         <h2>🛠 Parametry nástroje</h2>
 
         <label>Název nástroje</label>
@@ -41,7 +45,7 @@
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
         <input id="customer-tool-id" type="text" placeholder="např. 540-887-0021">
 
-        <!-- DM & SÉRIOVÉ ČÍSLO -->
+        <!-- DM & SERIAL -->
         <h2>🔢 DM & Sériové číslo</h2>
 
         <label>
@@ -79,7 +83,7 @@
 
 </div>
 
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+<!-- JS soubory -->
 <script src="script.js"></script>
 </body>
 </html>
