@@ -30,7 +30,6 @@ function renderSuggestions(list, inputValue) {
   const box = document.getElementById("customer-suggestions");
   box.innerHTML = "";
 
-  // žádný výsledek → nabídni založení nového
   if (list.length === 0 && inputValue.length >= 2) {
     box.innerHTML = `
       <div class="suggestion-new" onclick="createNewCustomer('${inputValue.replace(/'/g, "\\'")}')">
@@ -79,14 +78,13 @@ function selectCustomer(item) {
   document.getElementById("customer-search").value = item.name;
   document.getElementById("customer-prefix").value = item.prefix;
 
-  // autofill sériového prefixu
   document.getElementById("serial-prefix").value = item.prefix;
 
   document.getElementById("customer-suggestions").classList.add("hidden");
 }
 
 /************************************************************
- * GENEROVÁNÍ SÉRIOVÉHO ČÍSLA – PŘES RPC FUNKCI
+ * GENEROVÁNÍ SÉRIOVÉHO ČÍSLA (serial_counters TABULKA)
  ************************************************************/
 async function generateSerial() {
   const serialEnabled = document.getElementById("serial-enable").checked;
@@ -96,14 +94,12 @@ async function generateSerial() {
   const customerPrefixInput = document.getElementById("customer-prefix");
   const dmContentInput = document.getElementById("dm-content");
 
-  // autofill prefixu
   if (!serialPrefixInput.value.trim() && customerPrefixInput.value.trim()) {
     serialPrefixInput.value = customerPrefixInput.value.trim();
   }
 
   const prefix = serialPrefixInput.value.trim();
 
-  // sériové číslo nepoužíváme
   if (!serialEnabled) {
     dmContentInput.value = dmEnabled ? prefix : "";
     updatePreview();
@@ -115,24 +111,48 @@ async function generateSerial() {
     return;
   }
 
-  /************************************************************
-   * 🔥 CALL RPC reserve_serial(prefix)
-   ************************************************************/
-  const { data, error } = await supabaseClient.rpc("reserve_serial", {
-    p_prefix: prefix
-  });
+  // 🔥 1) Najdi existující counter
+  const { data, error } = await supabaseClient
+    .from("serial_counters")
+    .select("*")
+    .eq("prefix", prefix)
+    .maybeSingle();
 
   if (error) {
-    console.error("❌ Chyba RPC reserve_serial:", error);
+    console.error("❌ Chyba serial_counters SELECT:", error);
     alert("Chyba při generování sériového čísla.");
     return;
   }
 
-  const nextSerial = data; // integer
-  const formatted = String(nextSerial).padStart(4, "0");
-  const serialFull = `${prefix}-${formatted}`;
+  let next = data ? data.current_serial + 1 : 1;
 
-  dmContentInput.value = dmEnabled ? serialFull : prefix;
+  if (!data) {
+    // 🔥 2) Insert nového prefixu
+    const { error: insErr } = await supabaseClient
+      .from("serial_counters")
+      .insert({ prefix, current_serial: 1 });
+
+    if (insErr) {
+      console.error("❌ Chyba INSERT:", insErr);
+      alert("Chyba při generování sériového čísla.");
+      return;
+    }
+  } else {
+    // 🔥 3) Update existujícího serialu
+    const { error: updErr } = await supabaseClient
+      .from("serial_counters")
+      .update({ current_serial: next })
+      .eq("id", data.id);
+
+    if (updErr) {
+      console.error("❌ Chyba UPDATE:", updErr);
+      alert("Chyba při generování sériového čísla.");
+      return;
+    }
+  }
+
+  const serial = `${prefix}-${String(next).padStart(4, "0")}`;
+  dmContentInput.value = dmEnabled ? serial : prefix;
 
   updatePreview();
 }
@@ -152,7 +172,6 @@ function updatePreview() {
   let pxWidth = length * scale;
   let pxHeight = diameter * scale;
 
-  // dynamické škálování
   const maxPx = 400;
   const maxDim = Math.max(pxWidth, pxHeight);
   if (maxDim > maxPx && maxDim > 0) {
@@ -223,7 +242,7 @@ async function saveTool() {
 }
 
 /************************************************************
- * EXPORT (zatím placeholder)
+ * EXPORT – zatím placeholder
  ************************************************************/
 function exportLabel() {
   alert("Export štítku zatím není implementovaný.");
