@@ -99,31 +99,57 @@ function updatePreview() {
 }
 
 /************************************************************
- * SAVE TOOL TO DATABASE
+ * SAVE TOOL TO DATABASE (final version)
  ************************************************************/
 async function saveTool() {
+  console.log("▶ saveTool() spuštěno");
+
   const customerPrefix = document.getElementById("customer-select").value;
   const name = document.getElementById("tool-name").value.trim();
   const diameter = parseFloat(document.getElementById("diameter").value);
   const length = parseFloat(document.getElementById("length").value);
+
   const serialEnabled = document.getElementById("serial-enable").checked;
   const dmEnabled = document.getElementById("dm-enable").checked;
   const dmContent = document.getElementById("dm-content").value.trim();
 
+  // 📌 nové pole – volitelné ID nástroje u zákazníka
+  const customerToolId = document.getElementById("customer-tool-id")
+    ? document.getElementById("customer-tool-id").value.trim()
+    : null;
+
+  // VALIDACE
   if (!name) {
-    alert("Musíš zadat název nástroje.");
+    alert("❗ Musíš zadat název nástroje.");
     return;
   }
 
-  const { error } = await supabaseClient.from("tools").insert({
+  // 📦 DATA K ULOŽENÍ
+  const insertData = {
     customer_prefix: customerPrefix,
-    name,
-    diameter,
-    length,
+    name: name,
+    diameter: diameter || null,
+    length: length || null,
     serial_enabled: serialEnabled,
     dm_enabled: dmEnabled,
-    dm_code: dmContent
-  });
+    dm_code: dmContent || null,
+    customer_tool_id: customerToolId || null   // ← NOVÉ POLE
+  };
+
+  console.log("📦 Odesílám do DB:", insertData);
+
+  const { data, error } = await supabaseClient
+    .from("tools")
+    .insert(insertData);
+
+  if (error) {
+    console.error("❌ Chyba při ukládání:", error);
+    alert("⚠️ Chyba ukládání do databáze.");
+  } else {
+    console.log("✅ Uloženo:", data);
+    alert("✅ Nástroj úspěšně uložen!");
+  }
+}
 
   if (error) {
     console.error("❌ Chyba při ukládání:", error);
