@@ -18,15 +18,16 @@
         <!-- ZÁKAZNÍK – AUTOCOMPLETE -->
         <h2>🧩 Zákazník</h2>
 
+        <label>Vyhledat / založit zákazníka</label>
         <div class="customer-search-wrapper">
-            <input id="customer-search" type="text" placeholder="Začni psát název firmy…">
+            <input id="customer-search" type="text" placeholder="Začni psát název…">
             <div id="customer-suggestions" class="hidden"></div>
         </div>
 
         <label>Prefix zákazníka</label>
-        <input id="customer-prefix" type="text" placeholder="např. AH01">
+        <input id="serial-prefix" type="text" placeholder="např. AH01" readonly>
 
-        <!-- Parametry nástroje -->
+        <!-- PARAMETRY NÁSTROJE -->
         <h2>🛠 Parametry nástroje</h2>
 
         <label>Název nástroje</label>
@@ -41,17 +42,14 @@
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
         <input id="customer-tool-id" type="text" placeholder="např. 540-887-0021">
 
-        <!-- DM & Sériové číslo -->
+        <!-- DM & SERIAL -->
         <h2>🔢 DM & Sériové číslo</h2>
 
         <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
         <label><input type="checkbox" id="serial-enable"> Použít sériové číslo</label>
 
-        <label>Prefix</label>
-        <input id="serial-prefix" type="text">
-
         <label>Obsah DM kódu</label>
-        <input id="dm-content" type="text">
+        <input id="dm-content" type="text" placeholder="(automaticky)">
 
         <button onclick="generateSerial()">Generovat DM / Serial</button>
 
@@ -59,12 +57,12 @@
         <h2>💾 Uložit nástroj</h2>
         <button onclick="saveTool()">Uložit nástroj</button>
 
-        <!-- Export -->
+        <!-- EXPORT -->
         <h2>📦 Export</h2>
         <button onclick="exportLabel()">Exportovat štítek</button>
     </div>
 
-    <!-- MAIN AREA -->
+    <!-- MAIN VIEW -->
     <div class="main">
         <h2>Náhled štítku (Laser Preview)</h2>
         <div id="preview-area" class="preview-box"></div>
