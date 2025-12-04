@@ -3,16 +3,18 @@
  ************************************************************/
 const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
-
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+
 /************************************************************
- * LOAD CUSTOMERS FROM DB
+ * LOAD ALL CUSTOMERS INTO MEMORY
  ************************************************************/
+let ALL_CUSTOMERS = [];
+
 async function loadCustomers() {
   const { data, error } = await supabaseClient
     .from("customers")
-    .select("prefix, name")
+    .select("*")
     .order("name", { ascending: true });
 
   if (error) {
@@ -20,23 +22,107 @@ async function loadCustomers() {
     return;
   }
 
-  const select = document.getElementById("customer-select");
-  select.innerHTML = "";
-
-  data.forEach(c => {
-    const option = document.createElement("option");
-    option.value = c.prefix;
-    option.textContent = `${c.name} (${c.prefix})`;
-    select.appendChild(option);
-  });
+  ALL_CUSTOMERS = data || [];
 }
+
+
+/************************************************************
+ * AUTOCOMPLETE — hledání zákazníků podle psaní
+ ************************************************************/
+function searchCustomers(query) {
+  query = query.toLowerCase();
+
+  return ALL_CUSTOMERS.filter(c =>
+    c.name.toLowerCase().includes(query) ||
+    c.prefix.toLowerCase().includes(query)
+  );
+}
+
+
+/************************************************************
+ * VYKRESLENÍ NÁVRHŮ POD INPUT
+ ************************************************************/
+function renderSuggestions(matches, query) {
+  const box = document.getElementById("customer-suggestions");
+  box.innerHTML = "";
+
+  // Pokud nic nenapsal
+  if (!query) return;
+
+  // Existující shody
+  matches.forEach(c => {
+    const div = document.createElement("div");
+    div.className = "suggestion-item";
+    div.textContent = `${c.name} (${c.prefix})`;
+
+    div.onclick = () => {
+      document.getElementById("customer-search").value = c.name;
+      document.getElementById("serial-prefix").value = c.prefix;
+      box.innerHTML = "";
+      console.log("✔ Vybrán zákazník:", c);
+    };
+
+    box.appendChild(div);
+  });
+
+  // Pokud nejsou shody → nabídnout vytvoření
+  if (matches.length === 0) {
+    const div = document.createElement("div");
+    div.className = "suggestion-new";
+    div.innerHTML = `➕ Založit nového zákazníka „<strong>${query}</strong>“`;
+    div.onclick = () => createNewCustomer(query);
+    box.appendChild(div);
+  }
+}
+
+
+/************************************************************
+ * VYTVOŘENÍ NOVÉHO ZÁKAZNÍKA
+ ************************************************************/
+async function createNewCustomer(name) {
+  console.log("🆕 Zakládám nového zákazníka:", name);
+
+  // Vygenerovat prefix = první 2 písmena + 01, 02…
+  const base = name
+    .replace(/[^A-Za-z0-9]/g, "")
+    .substring(0, 2)
+    .toUpperCase();
+
+  // zjistit existující prefixy
+  const existing = ALL_CUSTOMERS.filter(c => c.prefix.startsWith(base));
+  const number = (existing.length + 1).toString().padStart(2, "0");
+  const prefix = base + number;
+
+  // uložit do DB
+  const { data, error } = await supabaseClient
+    .from("customers")
+    .insert({ name, prefix })
+    .select()
+    .single();
+
+  if (error) {
+    alert("Chyba při zakládání zákazníka.");
+    console.error(error);
+    return;
+  }
+
+  // přidat do paměti
+  ALL_CUSTOMERS.push(data);
+
+  // nastavit jako aktivního
+  document.getElementById("customer-search").value = data.name;
+  document.getElementById("serial-prefix").value = data.prefix;
+
+  document.getElementById("customer-suggestions").innerHTML = "";
+
+  alert(`✔ Zákazník „${name}“ byl vytvořen (prefix ${prefix})`);
+}
+
 
 /************************************************************
  * GENERATE SERIAL
  ************************************************************/
 async function generateSerial() {
-  console.log("▶ generateSerial() spuštěno");
-
   const prefix = document.getElementById("serial-prefix").value.trim();
   const dmEnabled = document.getElementById("dm-enable").checked;
   const serialEnabled = document.getElementById("serial-enable").checked;
@@ -79,6 +165,7 @@ async function generateSerial() {
   updatePreview();
 }
 
+
 /************************************************************
  * UPDATE PREVIEW
  ************************************************************/
@@ -88,23 +175,23 @@ function updatePreview() {
   const length = document.getElementById("length").value;
   const dmContent = document.getElementById("dm-content").value;
 
-  const preview = document.getElementById("preview-area");
-  preview.innerHTML = `
+  document.getElementById("preview-area").innerHTML = `
     <div style="padding:20px; font-size:18px;">
       <strong>${toolName}</strong><br>
       Ø${diameter} × ${length} mm<br><br>
-      ${dmContent ? `<div>DM: <strong>${dmContent}</strong></div>` : ""}
+      ${dmContent ? `DM: <strong>${dmContent}</strong>` : ""}
     </div>
   `;
 }
 
+
 /************************************************************
- * SAVE TOOL TO DATABASE — S INTERNAL TOOL ID
+ * SAVE TOOL – with customer_tool_id
  ************************************************************/
 async function saveTool() {
-  console.log("▶ saveTool() spuštěno");
+  const customerName = document.getElementById("customer-search").value.trim();
+  const prefix = document.getElementById("serial-prefix").value.trim();
 
-  const customerPrefix = document.getElementById("customer-select").value;
   const name = document.getElementById("tool-name").value.trim();
   const diameter = parseFloat(document.getElementById("diameter").value);
   const length = parseFloat(document.getElementById("length").value);
@@ -113,52 +200,56 @@ async function saveTool() {
   const dmEnabled = document.getElementById("dm-enable").checked;
   const dmContent = document.getElementById("dm-content").value.trim();
 
-  // 📌 volitelné ID nástroje u zákazníka
   const customerToolId =
     document.getElementById("customer-tool-id")?.value.trim() || null;
 
+  if (!customerName || !prefix) {
+    alert("Musíš vybrat nebo založit zákazníka.");
+    return;
+  }
+
   if (!name) {
-    alert("❗ Musíš zadat název nástroje.");
+    alert("Musíš zadat název nástroje.");
     return;
   }
 
   const insertData = {
-    customer_prefix: customerPrefix,
+    customer_name: customerName,
+    customer_prefix: prefix,
     name,
     diameter: diameter || null,
     length: length || null,
     serial_enabled: serialEnabled,
     dm_enabled: dmEnabled,
     dm_code: dmContent || null,
-    customer_tool_id: customerToolId          // ← NOVÉ POLE
+    customer_tool_id: customerToolId
   };
 
-  console.log("📦 Ukládám:", insertData);
-
-  const { data, error } = await supabaseClient
-    .from("tools")
-    .insert(insertData);
+  const { error } = await supabaseClient.from("tools").insert(insertData);
 
   if (error) {
-    console.error("❌ Chyba při ukládání:", error);
-    alert("⚠️ Chyba ukládání do databáze.");
+    alert("Chyba ukládání do databáze.");
+    console.error(error);
   } else {
-    console.log("✅ Uloženo:", data);
-    alert("✅ Nástroj úspěšně uložen!");
+    alert("✔ Nástroj uložen!");
   }
 }
 
-/************************************************************
- * EXPORT LABEL (placeholder)
- ************************************************************/
-function exportLabel() {
-  alert("Export není zatím implementován.");
-}
 
 /************************************************************
  * INIT
  ************************************************************/
-window.addEventListener("DOMContentLoaded", () => {
-  loadCustomers();
+window.addEventListener("DOMContentLoaded", async () => {
+  await loadCustomers();
+
+  const input = document.getElementById("customer-search");
+  const suggestions = document.getElementById("customer-suggestions");
+
+  input.addEventListener("input", () => {
+    const q = input.value.trim();
+    const matches = searchCustomers(q);
+    renderSuggestions(matches, q);
+  });
+
   updatePreview();
 });
