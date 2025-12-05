@@ -20,58 +20,107 @@
 
         <!-- TOP BUTTONS -->
         <button id="reset-btn" class="reset-btn" onclick="resetAll()">🔁 Reset formuláře</button>
-        <button id="edit-toggle" class="edit-btn" style="display:none;" onclick="toggleEditMode()">✏️ Editovat</button>
+        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat parametry</button>
 
         <!-- ZÁKAZNÍK -->
         <h2><span class="icon">🧩</span> Zákazník</h2>
 
-        <div class="input-wrapper">
-            <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka…">
+        <div class="customer-search-wrapper">
+            <input
+                id="customer-search"
+                type="text"
+                placeholder="Vyhledat / založit zákazníka…"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            >
             <div id="customer-suggestions" class="dropdown"></div>
         </div>
 
         <label>Prefix zákazníka</label>
-        <input id="customer-prefix" type="text" class="lockable-field" placeholder="např. AH01">
+        <input
+            id="customer-prefix"
+            type="text"
+            class="lockable-field"
+            placeholder="např. AH01"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <!-- HLEDAT NÁSTROJ -->
         <h2><span class="icon">🔍</span> Vyhledat uložený nástroj</h2>
 
-        <div class="input-wrapper">
-            <input id="tool-search" type="text" placeholder="Hledat podle názvu nebo ID…">
+        <div class="tool-search-wrapper">
+            <input
+                id="tool-search"
+                type="text"
+                placeholder="Hledat podle názvu nebo ID…"
+                autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+            >
             <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY -->
+        <!-- PARAMETRY (zamykatelné) -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
-        <input id="tool-name" type="text" class="lockable-field">
+        <input
+            id="tool-name"
+            type="text"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <label>Průměr stopky [mm]</label>
-        <input id="diameter" type="number" step="0.01" class="lockable-field">
+        <input
+            id="diameter"
+            type="number"
+            step="0.01"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <label>Délka stopky [mm]</label>
-        <input id="length" type="number" class="lockable-field">
+        <input
+            id="length"
+            type="number"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
-        <input id="customer-tool-id" type="text" class="lockable-field">
+        <input
+            id="customer-tool-id"
+            type="text"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <!-- DM / SERIAL -->
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
-        <label class="checkbox-line lockable-field">
-            <input type="checkbox" id="dm-enable"> Povolit DataMatrix
+        <label class="checkbox-line">
+            <input type="checkbox" id="dm-enable" class="lockable-field">
+            Povolit DataMatrix
         </label>
 
-        <label class="checkbox-line lockable-field">
-            <input type="checkbox" id="serial-enable"> Použít sériové číslo
+        <label class="checkbox-line">
+            <input type="checkbox" id="serial-enable" class="lockable-field">
+            Použít sériové číslo
         </label>
 
         <label>Prefix pro sériové číslo</label>
-        <input id="serial-prefix" type="text" class="lockable-field">
+        <input
+            id="serial-prefix"
+            type="text"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <label>Obsah DM kódu</label>
-        <input id="dm-content" type="text" class="lockable-field">
+        <input
+            id="dm-content"
+            type="text"
+            class="lockable-field"
+            autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        >
 
         <button class="lockable-field" onclick="generateSerial()">Generovat DM / Serial</button>
 
