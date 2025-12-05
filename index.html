@@ -18,10 +18,8 @@
         <h1>Laser Label Builder</h1>
         <p class="subtitle">Nultá verze · Offline demo</p>
 
-        <!-- RESET -->
-        <button class="reset-btn" onclick="resetForm()">🧹 RESET formuláře</button>
-
-        <!-- EDIT / LOCK BUTTON -->
+        <!-- TOP BUTTONS -->
+        <button id="reset-btn" class="reset-btn" onclick="resetAll()">🔁 Reset formuláře</button>
         <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat parametry</button>
 
         <!-- ZÁKAZNÍK -->
@@ -33,7 +31,7 @@
         </div>
 
         <label>Prefix zákazníka</label>
-        <input id="customer-prefix" type="text" placeholder="např. AH01">
+        <input id="customer-prefix" type="text" class="lockable-field" placeholder="např. AH01">
 
         <!-- HLEDAT NÁSTROJ -->
         <h2><span class="icon">🔍</span> Vyhledat uložený nástroj</h2>
@@ -43,34 +41,41 @@
             <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY -->
+        <!-- PARAMETRY (zamykatelné) -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
-        <input id="tool-name" type="text">
+        <input id="tool-name" type="text" class="lockable-field">
 
         <label>Průměr stopky [mm]</label>
-        <input id="diameter" type="number" step="0.01">
+        <input id="diameter" type="number" step="0.01" class="lockable-field">
 
         <label>Délka stopky [mm]</label>
-        <input id="length" type="number">
+        <input id="length" type="number" class="lockable-field">
 
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
-        <input id="customer-tool-id" type="text">
+        <input id="customer-tool-id" type="text" class="lockable-field">
 
         <!-- DM / SERIAL -->
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
-        <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
-        <label><input type="checkbox" id="serial-enable"> Použít sériové číslo</label>
+        <label class="checkbox-line lockable-field">
+            <input type="checkbox" id="dm-enable">
+            Povolit DataMatrix
+        </label>
+
+        <label class="checkbox-line lockable-field">
+            <input type="checkbox" id="serial-enable">
+            Použít sériové číslo
+        </label>
 
         <label>Prefix pro sériové číslo</label>
-        <input id="serial-prefix" type="text">
+        <input id="serial-prefix" type="text" class="lockable-field">
 
         <label>Obsah DM kódu</label>
-        <input id="dm-content" type="text">
+        <input id="dm-content" type="text" class="lockable-field">
 
-        <button onclick="generateSerial()">Generovat DM / Serial</button>
+        <button class="lockable-field" onclick="generateSerial()">Generovat DM / Serial</button>
 
         <!-- ULOŽIT -->
         <h2><span class="icon">💾</span> Uložit nový nástroj</h2>
