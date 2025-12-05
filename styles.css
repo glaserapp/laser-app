@@ -1,5 +1,9 @@
 /* RESET */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
@@ -7,6 +11,7 @@ body {
   padding: 20px;
 }
 
+/* LAYOUT */
 .app {
   display: flex;
   gap: 30px;
@@ -14,8 +19,11 @@ body {
   margin: auto;
 }
 
+/* SIDEBAR */
 .sidebar {
-  width: 320px;
+  width: 280px;
+  min-width: 280px;
+  max-width: 280px;
   padding: 20px;
   background: white;
   border-radius: 16px;
@@ -25,38 +33,75 @@ body {
 }
 
 .sidebar.locked input,
-.sidebar.locked select {
+.sidebar.locked select,
+.sidebar.locked textarea {
   background: #ebebeb;
   pointer-events: none;
   opacity: 0.7;
 }
 
-.edit-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: 15px;
-  margin-bottom: 10px;
-  background: #ffb300;
-  color: black;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+/* Nadpisy s ikonami */
+.sidebar h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  margin-top: 18px;
+  margin-bottom: 6px;
+  white-space: nowrap;
 }
-.edit-btn:hover { background: #e69a00; }
+
+/* ikonka – fix šířky */
+.sidebar h2 .icon {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+}
+
+.subtitle {
+  font-size: 14px;
+  opacity: 0.6;
+}
+
+/* Inputs */
+.sidebar input,
+.sidebar select {
+  width: 100%;
+  padding: 6px 8px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  border: 1px solid #cfcfcf;
+  font-size: 15px;
+}
 
 /* Buttons */
 .sidebar button {
   width: 100%;
-  margin-top: 10px;
   padding: 10px;
+  font-size: 15px;
   background: #1984ff;
   color: white;
   border-radius: 6px;
   border: none;
   cursor: pointer;
+  margin-top: 8px;
 }
 
-.sidebar button:hover { background: #0f6bd4; }
+.sidebar button:hover {
+  background: #0f6bd4;
+}
+
+/* EDIT button */
+.edit-btn {
+  background: #ffb300;
+  color: black;
+  margin-bottom: 10px;
+}
+
+.edit-btn:hover {
+  background: #e69a00;
+}
 
 /* Preview */
 .preview-box {
@@ -67,26 +112,17 @@ body {
   min-height: 260px;
 }
 
-/* AUTOCOMPLETE CUSTOMER + TOOL */
+/* Autocomplete */
 .customer-search-wrapper,
 .tool-search-wrapper {
   position: relative;
-}
-
-#customer-search,
-#tool-search {
-  width: 100%;
-  padding: 8px 10px;
-  font-size: 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  margin-bottom: 10px;
 }
 
 #customer-suggestions,
 #tool-suggestions {
   position: absolute;
   top: 40px;
-  left: 0;
   width: 100%;
   background: white;
   border: 1px solid #d0d0d0;
@@ -98,16 +134,13 @@ body {
 }
 
 .suggestion-item,
-.tool-suggestion,
 .suggestion-new {
   padding: 10px 12px;
   cursor: pointer;
   font-size: 15px;
 }
 
-.suggestion-item:hover,
-.tool-suggestion:hover,
-.suggestion-new:hover {
+.suggestion-item:hover {
   background: #f2f2f2;
 }
 
@@ -115,7 +148,12 @@ body {
   background: #eef9ff;
   color: #006aa8;
   font-weight: 600;
-  border-top: 1px solid #d0d0d0;
 }
 
-.hidden { display: none; }
+.suggestion-new:hover {
+  background: #dff2ff;
+}
+
+.hidden {
+  display: none;
+}
