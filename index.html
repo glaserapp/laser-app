@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <title>Laser Label Builder</title>
 
-    <!-- Supabase klient -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -19,8 +19,8 @@
         <h1>Laser Label Builder</h1>
         <p class="subtitle">Nultá verze · Offline demo</p>
 
-        <!-- EDIT / LOCK BUTTON – zobrazí se až po načtení uloženého nástroje -->
-        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()" style="display:none;">
+        <!-- EDIT BUTTON – zobrazí se jen když je načtený nástroj -->
+        <button id="edit-toggle" class="edit-btn" style="display:none;" onclick="toggleEditMode()">
             ✏️ Editovat parametry
         </button>
 
@@ -43,44 +43,38 @@
             <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY (zamykatelné) -->
+        <!-- PARAMETRY NÁSTROJE -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
-        <input id="tool-name" type="text" class="lockable">
+        <input id="tool-name" type="text">
 
         <label>Průměr stopky [mm]</label>
-        <input id="diameter" type="number" step="0.01" class="lockable">
+        <input id="diameter" type="number" step="0.01">
 
         <label>Délka stopky [mm]</label>
-        <input id="length" type="number" class="lockable">
+        <input id="length" type="number">
 
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
-        <input id="customer-tool-id" type="text" class="lockable">
+        <input id="customer-tool-id" type="text">
 
-        <!-- DM / SERIAL -->
+        <!-- DM a Serial -->
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
-        <label>
-            <input type="checkbox" id="dm-enable" class="lockable">
-            Povolit DataMatrix
-        </label>
-        <label>
-            <input type="checkbox" id="serial-enable" class="lockable">
-            Použít sériové číslo
-        </label>
+        <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
+        <label><input type="checkbox" id="serial-enable"> Použít sériové číslo</label>
 
         <label>Prefix pro sériové číslo</label>
-        <input id="serial-prefix" type="text" class="lockable">
+        <input id="serial-prefix" type="text">
 
         <label>Obsah DM kódu</label>
-        <input id="dm-content" type="text" class="lockable">
+        <input id="dm-content" type="text">
 
-        <button id="generate-btn" class="lockable" onclick="generateSerial()">Generovat DM / Serial</button>
+        <button onclick="generateSerial()">Generovat DM / Serial</button>
 
-        <!-- ULOŽIT -->
+        <!-- ULOŽENÍ -->
         <h2><span class="icon">💾</span> Uložit nový nástroj</h2>
-        <button id="save-btn" class="lockable" onclick="saveTool()">Uložit nástroj</button>
+        <button onclick="saveTool()">Uložit nástroj</button>
 
         <!-- EXPORT -->
         <h2><span class="icon">📦</span> Export</h2>
@@ -88,7 +82,7 @@
 
     </div>
 
-    <!-- MAIN AREA -->
+    <!-- PRAVÁ STRANA – NÁHLED -->
     <div class="main">
         <h2>Náhled štítku (Laser Preview)</h2>
         <div id="preview-area" class="preview-box"></div>
