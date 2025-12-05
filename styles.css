@@ -1,428 +1,227 @@
-/************************************************************
- * INIT SUPABASE
- ************************************************************/
-const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-/************************************************************
- * GLOBAL STATE
- ************************************************************/
-let loadedToolData = null;      // když je null → volný režim
-let editMode = false;
-
-/************************************************************
- * RESET FORM
- ************************************************************/
-function resetAll() {
-
-    loadedToolData = null;
-    editMode = false;
-
-    document.getElementById("customer-search").value = "";
-    document.getElementById("customer-prefix").value = "";
-    document.getElementById("tool-search").value = "";
-
-    document.getElementById("tool-name").value = "";
-    document.getElementById("diameter").value = "";
-    document.getElementById("length").value = "";
-    document.getElementById("customer-tool-id").value = "";
-
-    document.getElementById("dm-enable").checked = false;
-    document.getElementById("serial-enable").checked = false;
-    document.getElementById("serial-prefix").value = "";
-    document.getElementById("dm-content").value = "";
-
-    document.getElementById("customer-suggestions").style.display = "none";
-    document.getElementById("tool-suggestions").style.display = "none";
-
-    // znovu uzamknout jen pokud je loaded nástroj -> ale není
-    document.getElementById("sidebar").classList.remove("locked");
-
-    // EDIT schovat
-    document.getElementById("edit-toggle").style.display = "none";
-
-    updatePreview();
+/* RESET */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
-/************************************************************
- * EDIT / LOCK MODE
- ************************************************************/
-function toggleEditMode() {
-
-    if (!loadedToolData) {
-        alert("Nejprve načti uložený nástroj. EDIT nemá význam pro volný zápis.");
-        return;
-    }
-
-    editMode = !editMode;
-
-    const sidebar = document.getElementById("sidebar");
-    const btn = document.getElementById("edit-toggle");
-
-    if (editMode) {
-        btn.textContent = "🔒 Zamknout";
-        sidebar.classList.remove("locked");
-    } else {
-        btn.textContent = "✏️ Editovat";
-        sidebar.classList.add("locked");
-        restoreLoadedTool();
-    }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    background: #f5f5f7;
+    padding: 20px;
+    color: #222;
 }
 
-function restoreLoadedTool() {
-    if (!loadedToolData) return;
-
-    const t = loadedToolData;
-
-    document.getElementById("tool-name").value = t.name || "";
-    document.getElementById("diameter").value = t.diameter ?? "";
-    document.getElementById("length").value = t.length ?? "";
-    document.getElementById("customer-tool-id").value = t.customer_tool_id ?? "";
-
-    document.getElementById("dm-enable").checked = !!t.dm_enabled;
-    document.getElementById("serial-enable").checked = !!t.serial_enabled;
-    document.getElementById("serial-prefix").value = t.serial_prefix || t.customer_prefix || "";
-    document.getElementById("dm-content").value = t.dm_code ?? "";
-
-    updatePreview();
+/* LAYOUT */
+.app {
+    display: flex;
+    gap: 30px;
+    max-width: 1700px;
+    margin: auto;
+    align-items: flex-start;
 }
 
-/************************************************************
- * CUSTOMER SEARCH + PREFIX LOGIC
- ************************************************************/
-async function searchCustomers(text) {
-    if (!text) return [];
-
-    const { data, error } = await supabaseClient
-        .from("customers")
-        .select("*")
-        .ilike("name", `%${text}%`)
-        .order("name");
-
-    if (error) return [];
-    return data || [];
+/* SIDEBAR */
+.sidebar {
+    width: 300px;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    position: sticky;
+    top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 
-function renderCustomerSuggestions(list, input) {
-
-    const box = document.getElementById("customer-suggestions");
-    box.innerHTML = "";
-
-    if (list.length === 0 && input.length >= 2) {
-        const div = document.createElement("div");
-        div.innerHTML = `+ Založit zákazníka <b>${input}</b>`;
-        div.onclick = () => createNewCustomer(input);
-        box.appendChild(div);
-        box.style.display = "block";
-        return;
-    }
-
-    list.forEach(c => {
-        const div = document.createElement("div");
-        div.textContent = `${c.name} (${c.prefix})`;
-        div.onclick = () => selectCustomer(c);
-        box.appendChild(div);
-    });
-
-    box.style.display = list.length ? "block" : "none";
+.sidebar.locked .lockable-field {
+    background: #e9e9e9 !important;
+    pointer-events: none;
+    opacity: 0.65;
 }
 
-/*** PREFIX GENERATOR ***/
-async function generateCustomerPrefix(name) {
-
-    let clean = (name || "")
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^A-Za-z]/g, "")
-        .toUpperCase();
-
-    let base = clean.slice(0, 2) || "CU";
-
-    if (["šablona","sablona","šablony","sablony"].includes(name.toLowerCase().trim())) {
-        base = "TP"; // prefix TMP
-    }
-
-    // najdeme volné číslo 01–99
-    for (let i = 1; i <= 99; i++) {
-        const prefix = base + String(i).padStart(2, "0");
-
-        const { data } = await supabaseClient
-            .from("customers")
-            .select("id")
-            .eq("prefix", prefix)
-            .maybeSingle();
-
-        if (!data) return prefix;
-    }
-
-    // fallback – tohle nenastane, ale pro jistotu
-    return base + String(Math.floor(Math.random() * 90 + 10));
+.sidebar h1 {
+    font-size: 22px;
+    margin-bottom: 4px;
 }
 
-async function createNewCustomer(name) {
-
-    const prefix = await generateCustomerPrefix(name);
-
-    const { data, error } = await supabaseClient
-        .from("customers")
-        .insert({ name, prefix })
-        .select()
-        .single();
-
-    if (error) {
-        alert("Zákazníka se nepodařilo uložit.");
-        return;
-    }
-
-    selectCustomer(data);
+.subtitle {
+    font-size: 14px;
+    opacity: 0.6;
+    margin-bottom: 16px;
 }
 
-function selectCustomer(item) {
-    document.getElementById("customer-search").value = item.name;
-    document.getElementById("customer-prefix").value = item.prefix;
-    document.getElementById("serial-prefix").value = item.prefix;
-
-    document.getElementById("customer-suggestions").style.display = "none";
+/* HEADERS */
+.sidebar h2 {
+    margin-top: 20px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
-/************************************************************
- * TOOL SEARCH
- ************************************************************/
-async function searchTools(q, prefix) {
-    if (!q) return [];
-
-    let query = supabaseClient
-        .from("tools")
-        .select("*")
-        .or(`name.ilike.%${q}%,customer_tool_id.ilike.%${q}%`)
-        .order("name");
-
-    if (prefix) query = query.eq("customer_prefix", prefix);
-
-    const { data, error } = await query;
-
-    if (error) return [];
-    return data || [];
+.icon {
+    font-size: 18px;
 }
 
-function renderToolSuggestions(list) {
-    const box = document.getElementById("tool-suggestions");
-    box.innerHTML = "";
-
-    if (!list.length) {
-        box.style.display = "none";
-        return;
-    }
-
-    list.forEach(t => {
-        const div = document.createElement("div");
-        div.className = "tool-suggestion";
-        div.textContent = `${t.name} · ${t.customer_tool_id || "bez ID"}`;
-        div.onclick = () => loadTool(t);
-        box.appendChild(div);
-    });
-
-    box.style.display = "block";
+/* BUTTONS TOP */
+.reset-btn,
+.edit-btn {
+    width: 100%;
+    padding: 10px 12px;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    margin-bottom: 8px;
 }
 
-async function loadTool(tool) {
-
-    loadedToolData = tool;
-    editMode = false;
-
-    const sidebar = document.getElementById("sidebar");
-    sidebar.classList.add("locked");
-
-    const btn = document.getElementById("edit-toggle");
-    btn.style.display = "block";
-    btn.textContent = "✏️ Editovat";
-
-    // vyplnit pole
-    document.getElementById("tool-name").value = tool.name || "";
-    document.getElementById("diameter").value = tool.diameter ?? "";
-    document.getElementById("length").value = tool.length ?? "";
-    document.getElementById("customer-tool-id").value = tool.customer_tool_id ?? "";
-
-    document.getElementById("dm-enable").checked = !!tool.dm_enabled;
-    document.getElementById("serial-enable").checked = !!tool.serial_enabled;
-    document.getElementById("serial-prefix").value = tool.serial_prefix || tool.customer_prefix || "";
-    document.getElementById("dm-content").value = tool.dm_code ?? "";
-
-    // doplníme zákazníka
-    document.getElementById("customer-prefix").value = tool.customer_prefix;
-
-    const { data } = await supabaseClient
-        .from("customers")
-        .select("*")
-        .eq("prefix", tool.customer_prefix)
-        .maybeSingle();
-
-    if (data) {
-        document.getElementById("customer-search").value = data.name;
-    }
-
-    document.getElementById("tool-suggestions").style.display = "none";
-
-    updatePreview();
+.reset-btn {
+    background: #f1f3f4;
+    color: #333;
+}
+.reset-btn:hover {
+    background: #e0e3e7;
 }
 
-/************************************************************
- * SERIAL + DM
- ************************************************************/
-async function generateSerial() {
-
-    const enableSerial = document.getElementById("serial-enable").checked;
-    const dmEnabled = document.getElementById("dm-enable").checked;
-
-    const prefix = document.getElementById("serial-prefix").value.trim();
-    const dmBox = document.getElementById("dm-content");
-
-    if (!enableSerial) {
-        dmBox.value = dmEnabled ? prefix : "";
-        updatePreview();
-        return;
-    }
-
-    if (!prefix) {
-        alert("Vyplň prefix.");
-        return;
-    }
-
-    const { data } = await supabaseClient
-        .from("serial_counters")
-        .select("*")
-        .eq("prefix", prefix)
-        .maybeSingle();
-
-    let next = data ? data.current_serial + 1 : 1;
-
-    if (!data) {
-        await supabaseClient.from("serial_counters").insert({ prefix, current_serial: 1 });
-    } else {
-        await supabaseClient.from("serial_counters")
-            .update({ current_serial: next })
-            .eq("id", data.id);
-    }
-
-    const serial = `${prefix}-${String(next).padStart(4, "0")}`;
-    dmBox.value = dmEnabled ? serial : prefix;
-
-    updatePreview();
+.edit-btn {
+    background: #1a73e8;
+    color: white;
+}
+.edit-btn:hover {
+    background: #0d5ecc;
 }
 
-/************************************************************
- * PREVIEW
- ************************************************************/
-function updatePreview() {
-
-    const name = document.getElementById("tool-name").value || "";
-    const diameter = parseFloat(document.getElementById("diameter").value) || 10;
-    const length = parseFloat(document.getElementById("length").value) || 50;
-    const dm = document.getElementById("dm-content").value || "";
-    const id = document.getElementById("customer-tool-id").value || "";
-
-    let w = length * 18;
-    let h = diameter * 18;
-
-    const maxSize = 420;
-    if (Math.max(w, h) > maxSize) {
-        const f = maxSize / Math.max(w, h);
-        w *= f;
-        h *= f;
-    }
-
-    document.getElementById("preview-area").innerHTML = `
-        <div style="
-            width:${w}px;
-            height:${h}px;
-            border-radius:${h/2}px;
-            background: radial-gradient(circle at 30% 0%, white, #d0d0d0);
-            display:flex;
-            align-items:center;
-            justify-content:center;
-            box-shadow:0 6px 16px rgba(0,0,0,0.15);
-        ">
-            <div style="
-                width:${h*0.4}px;
-                height:${h*0.25}px;
-                background:black;
-                border-radius:5px;
-            "></div>
-        </div>
-
-        <div style="text-align:center;margin-top:10px;font-size:14px;">
-            <b>${name || "&nbsp;"}</b><br>
-            ${id || "&nbsp;"}<br>
-            <span style="opacity:0.7;">DM: ${dm || "&nbsp;"}</span>
-        </div>
-    `;
+/* FORM ELEMENTS */
+.sidebar label {
+    display: block;
+    margin-top: 8px;
+    font-weight: 600;
+    font-size: 14px;
 }
 
-/************************************************************
- * SAVE TOOL
- ************************************************************/
-async function saveTool() {
-
-    const prefix = document.getElementById("customer-prefix").value.trim();
-    const name = document.getElementById("tool-name").value.trim();
-
-    if (!name) {
-        alert("Vyplň název nástroje.");
-        return;
-    }
-
-    const obj = {
-        customer_prefix: prefix || null,
-        name,
-        diameter: parseFloat(document.getElementById("diameter").value) || null,
-        length: parseFloat(document.getElementById("length").value) || null,
-        dm_enabled: document.getElementById("dm-enable").checked,
-        serial_enabled: document.getElementById("serial-enable").checked,
-        serial_prefix: document.getElementById("serial-prefix").value.trim(),
-        dm_code: document.getElementById("dm-content").value.trim(),
-        customer_tool_id: document.getElementById("customer-tool-id").value.trim()
-    };
-
-    const { error } = await supabaseClient.from("tools").insert(obj);
-
-    if (error) {
-        alert("Nepodařilo se uložit.");
-        return;
-    }
-
-    alert("Nástroj uložen.");
+.sidebar input[type="text"],
+.sidebar input[type="number"] {
+    width: 100%;
+    padding: 7px 9px;
+    margin-top: 3px;
+    border-radius: 6px;
+    border: 1px solid #cfcfcf;
+    font-size: 15px;
 }
 
-/************************************************************
- * EXPORT (zatím placeholder)
- ************************************************************/
-function exportLabel() {
-    alert("Export bude doplněn později.");
+/* CHECKBOX ROWS */
+.checkbox-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 6px;
+    font-weight: 600;
+    font-size: 14px;
 }
 
-/************************************************************
- * INIT
- ************************************************************/
-window.addEventListener("DOMContentLoaded", () => {
+.checkbox-line input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    margin: 0;
+}
 
-    // CUSTOMER AUTOCOMPLETE
-    document.getElementById("customer-search").addEventListener("input", async e => {
-        const txt = e.target.value.trim();
-        renderCustomerSuggestions(await searchCustomers(txt), txt);
-    });
+/* SIDEBAR BUTTONS */
+.sidebar button {
+    font-size: 15px;
+}
 
-    // TOOL SEARCH
-    document.getElementById("tool-search").addEventListener("input", async () => {
-        const q = document.getElementById("tool-search").value.trim();
-        const prefix = document.getElementById("customer-prefix").value.trim();
-        renderToolSuggestions(await searchTools(q, prefix));
-    });
+/* MODRÁ TLAČÍTKA (mimo reset/edit/export) */
+.sidebar button.lockable-field {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background: #1984ff;
+    color: white;
+    font-weight: 600;
+}
+.sidebar button.lockable-field:hover {
+    background: #0f6bd4;
+}
 
-    // LIVE PREVIEW
-    ["tool-name", "diameter", "length", "customer-tool-id", "dm-content"]
-        .forEach(id => {
-            document.getElementById(id).addEventListener("input", updatePreview);
-        });
+/* EXPORT BUTTON */
+.export {
+    width: 100%;
+    padding: 10px;
+    margin-top: 10px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    font-weight: 600;
+    background: #6d4c41;
+    color: white;
+}
+.export:hover {
+    background: #5d4037;
+}
 
-    updatePreview();
-});
+/* AUTOCOMPLETE WRAPPERS */
+.customer-search-wrapper,
+.tool-search-wrapper {
+    position: relative;
+}
+
+/* DROPDOWN */
+.dropdown {
+    position: absolute;
+    left: 0;
+    top: 100%;
+    margin-top: 4px;
+    width: 100%;
+    max-height: 230px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    display: none;
+    z-index: 9999;
+}
+
+.dropdown-item {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 15px;
+}
+
+.dropdown-item.hover,
+.dropdown-item:hover {
+    background: #e3f2fd;
+}
+
+.dropdown-item.new-item {
+    background: #e7f5ff;
+    color: #0063c9;
+    font-weight: 600;
+}
+.dropdown-item.new-item:hover {
+    background: #d6edff;
+}
+
+/* MAIN AREA */
+.main {
+    flex: 1;
+}
+
+.main h2 {
+    margin-bottom: 15px;
+}
+
+/* PREVIEW BOX */
+.preview-box {
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    min-height: 260px;
+}
