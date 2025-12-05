@@ -9,24 +9,44 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  * GLOBAL STATE
  ************************************************************/
 let editMode = false;
-let loadedToolData = null;   // null = volný režim bez zamykání
+let loadedToolData = null;   // když je null → volný režim
 
-/************************************************************
- * UNLOCK WHEN NO TOOL SELECTED
- ************************************************************/
-function unlockForNewEntry() {
-    loadedToolData = null;
-    editMode = false;
-
-    document.getElementById("sidebar").classList.remove("locked");
-    document.getElementById("edit-toggle").style.display = "none";
+function isToolLoaded() {
+    return !!loadedToolData;
 }
 
 /************************************************************
- * CHECK
+ * RESET FORM — kompletní vyčištění formuláře
  ************************************************************/
-function isToolLoaded() {
-    return !!loadedToolData;
+function resetForm() {
+    loadedToolData = null;
+    editMode = false;
+
+    document.getElementById("customer-search").value = "";
+    document.getElementById("customer-prefix").value = "";
+    document.getElementById("tool-search").value = "";
+
+    document.getElementById("tool-name").value = "";
+    document.getElementById("diameter").value = "";
+    document.getElementById("length").value = "";
+    document.getElementById("customer-tool-id").value = "";
+
+    document.getElementById("dm-enable").checked = false;
+    document.getElementById("serial-enable").checked = false;
+    document.getElementById("serial-prefix").value = "";
+    document.getElementById("dm-content").value = "";
+
+    // skryj dropdowny
+    document.getElementById("customer-suggestions").style.display = "none";
+    document.getElementById("tool-suggestions").style.display = "none";
+
+    // odemkni sidebar
+    document.getElementById("sidebar").classList.remove("locked");
+
+    // EDIT skryj (protože nejsme v uloženém módu)
+    document.getElementById("edit-toggle").style.display = "none";
+
+    updatePreview();
 }
 
 /************************************************************
@@ -61,6 +81,7 @@ function restoreLoadedTool() {
     document.getElementById("diameter").value = t.diameter ?? "";
     document.getElementById("length").value = t.length ?? "";
     document.getElementById("customer-tool-id").value = t.customer_tool_id ?? "";
+
     document.getElementById("dm-enable").checked = !!t.dm_enabled;
     document.getElementById("serial-enable").checked = !!t.serial_enabled;
     document.getElementById("serial-prefix").value = t.serial_prefix || t.customer_prefix || "";
@@ -70,46 +91,72 @@ function restoreLoadedTool() {
 }
 
 /************************************************************
- * CUSTOMER AUTOCOMPLETE
+ * CUSTOMER SEARCH
  ************************************************************/
 async function searchCustomers(text) {
     if (!text) return [];
-
-    const { data } = await supabaseClient
+    const { data, error } = await supabaseClient
         .from("customers")
         .select("*")
         .ilike("name", `%${text}%`)
         .order("name");
 
-    return data || [];
+    return error ? [] : data;
 }
 
+function renderCustomerSuggestions(list, inputText) {
+    const box = document.getElementById("customer-suggestions");
+    box.innerHTML = "";
+
+    // nabídnout založení zákazníka
+    if (!list.length && inputText.length >= 2) {
+        const div = document.createElement("div");
+        div.innerHTML = `+ Založit zákazníka: <b>${inputText}</b>`;
+        div.onclick = () => createNewCustomer(inputText);
+        box.appendChild(div);
+        box.style.display = "block";
+        return;
+    }
+
+    list.forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.name} (${c.prefix})`;
+        div.onclick = () => selectCustomer(c);
+        box.appendChild(div);
+    });
+
+    box.style.display = list.length ? "block" : "none";
+}
+
+// prefix generátor A → vždy 2 písmena + volné číslo 01–99
 async function generateCustomerPrefix(name) {
     const clean = (name || "")
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^A-Za-z]/g, "")
         .toUpperCase();
 
-    let base = clean.slice(0,2) || "CU";
+    let base = clean.slice(0, 2) || "CU";
 
-    const low = name.toLowerCase();
-    if (low === "šablona" || low === "sablona" || low.includes("template")) {
-        base = "TM";
+    // šablony = TMP
+    const lower = name.toLowerCase().trim();
+    if (lower === "šablona" || lower === "sablona") {
+        base = "TP";
     }
 
-    for (let i = 1; i < 99; i++) {
-        const prefix = base + String(i).padStart(2, "0");
+    // najít volné číslo
+    for (let i = 1; i <= 99; i++) {
+        const candidate = base + String(i).padStart(2, "0");
 
         const { data } = await supabaseClient
             .from("customers")
             .select("id")
-            .eq("prefix", prefix)
+            .eq("prefix", candidate)
             .maybeSingle();
 
-        if (!data) return prefix;
+        if (!data) return candidate;
     }
 
-    return base + String(Math.floor(Math.random()*90+10));
+    return base + "99"; // nouzově
 }
 
 async function createNewCustomer(name) {
@@ -122,44 +169,21 @@ async function createNewCustomer(name) {
         .single();
 
     if (error) {
-        alert("Nelze založit zákazníka.");
+        alert("❌ Chyba při vytváření zákazníka");
         return;
     }
 
     selectCustomer(data);
 }
 
-function renderCustomerSuggestions(list, text) {
-    const box = document.getElementById("customer-suggestions");
-    box.innerHTML = "";
-
-    if (!list.length && text.length >= 2) {
-        const d = document.createElement("div");
-        d.textContent = `+ Založit zákazníka: ${text}`;
-        d.onclick = () => createNewCustomer(text);
-        box.appendChild(d);
-        box.style.display = "block";
-        return;
-    }
-
-    list.forEach(c => {
-        const d = document.createElement("div");
-        d.textContent = `${c.name} (${c.prefix})`;
-        d.onclick = () => selectCustomer(c);
-        box.appendChild(d);
-    });
-
-    box.style.display = list.length ? "block" : "none";
-}
-
-function selectCustomer(cust) {
-    unlockForNewEntry();  // ← NEZAMYKAT, jsme jen ve volném režimu
-
-    document.getElementById("customer-search").value = cust.name;
-    document.getElementById("customer-prefix").value = cust.prefix;
-    document.getElementById("serial-prefix").value = cust.prefix;
+function selectCustomer(item) {
+    document.getElementById("customer-search").value = item.name;
+    document.getElementById("customer-prefix").value = item.prefix;
+    document.getElementById("serial-prefix").value = item.prefix;
 
     document.getElementById("customer-suggestions").style.display = "none";
+
+    // zákazník je vybraný, ale nejsme v režimu uloženého nástroje → EDIT zůstává schovaný
 }
 
 /************************************************************
@@ -174,12 +198,10 @@ async function searchTools(q, prefix) {
         .or(`name.ilike.%${q}%,customer_tool_id.ilike.%${q}%`)
         .order("name");
 
-    if (prefix) {
-        query = query.eq("customer_prefix", prefix);
-    }
+    if (prefix) query = query.eq("customer_prefix", prefix);
 
-    const { data } = await query;
-    return data || [];
+    const { data, error } = await query;
+    return error ? [] : data;
 }
 
 function renderToolSuggestions(list) {
@@ -193,6 +215,7 @@ function renderToolSuggestions(list) {
 
     list.forEach(t => {
         const div = document.createElement("div");
+        div.className = "tool-suggestion";
         div.textContent = `${t.name} · ${t.customer_tool_id || "bez ID"}`;
         div.onclick = () => loadTool(t);
         box.appendChild(div);
@@ -202,23 +225,24 @@ function renderToolSuggestions(list) {
 }
 
 async function loadTool(tool) {
+    const sidebar = document.getElementById("sidebar");
+    const editBtn = document.getElementById("edit-toggle");
+
     loadedToolData = tool;
     editMode = false;
 
-    const sidebar = document.getElementById("sidebar");
-    const btn = document.getElementById("edit-toggle");
-
     sidebar.classList.add("locked");
-    btn.style.display = "block";
-    btn.textContent = "✏️ Editovat parametry";
+    editBtn.style.display = "block";
+    editBtn.textContent = "✏️ Editovat parametry";
 
-    document.getElementById("tool-name").value = tool.name;
+    // parametry nástroje
+    document.getElementById("tool-name").value = tool.name || "";
     document.getElementById("diameter").value = tool.diameter ?? "";
     document.getElementById("length").value = tool.length ?? "";
     document.getElementById("customer-tool-id").value = tool.customer_tool_id ?? "";
     document.getElementById("dm-enable").checked = !!tool.dm_enabled;
     document.getElementById("serial-enable").checked = !!tool.serial_enabled;
-    document.getElementById("serial-prefix").value = tool.serial_prefix || tool.customer_prefix;
+    document.getElementById("serial-prefix").value = tool.serial_prefix || tool.customer_prefix || "";
     document.getElementById("dm-content").value = tool.dm_code ?? "";
 
     // zákazník podle prefixu
@@ -236,28 +260,26 @@ async function loadTool(tool) {
     }
 
     document.getElementById("tool-suggestions").style.display = "none";
-
     updatePreview();
 }
 
 /************************************************************
- * SERIAL GENERATOR
+ * SERIAL GENERATION
  ************************************************************/
 async function generateSerial() {
-    const serialEnabled = document.getElementById("serial-enable").checked;
+    const enableSerial = document.getElementById("serial-enable").checked;
     const dmEnabled = document.getElementById("dm-enable").checked;
-
     const prefix = document.getElementById("serial-prefix").value.trim();
     const dmBox = document.getElementById("dm-content");
 
-    if (!serialEnabled) {
+    if (!enableSerial) {
         dmBox.value = dmEnabled ? prefix : "";
         updatePreview();
         return;
     }
 
     if (!prefix) {
-        alert("Prefix musí být vyplněn.");
+        alert("Pro generování sériového čísla musí být prefix.");
         return;
     }
 
@@ -299,45 +321,30 @@ function updatePreview() {
     let pxW = length * 18;
     let pxH = diameter * 18;
 
-    const maxDim = 400;
-    const currentMax = Math.max(pxW, pxH);
-
-    if (currentMax > maxDim) {
-        const factor = maxDim / currentMax;
-        pxW *= factor;
-        pxH *= factor;
-    }
+    const maxSize = 400;
+    const scale = Math.min(1, maxSize / Math.max(pxW, pxH));
+    pxW *= scale;
+    pxH *= scale;
 
     document.getElementById("preview-area").innerHTML = `
-        <div style="
-            width:${pxW}px;
-            height:${pxH}px;
-            border-radius:${pxH/2}px;
+        <div style="width:${pxW}px;height:${pxH}px;border-radius:${pxH/2}px;
             background: radial-gradient(circle at 30% 0%, white, #d0d0d0);
-            display:flex;align-items:center;justify-content:center;
-            box-shadow:0 6px 18px rgba(0,0,0,0.15);
-        ">
-            <div style="
-                width:${pxH*0.4}px;
-                height:${pxH*0.25}px;
-                background:black;
-                border-radius:6px;
-            "></div>
+            display:flex;align-items:center;justify-content:center;">
+            <div style="width:${pxH*0.4}px;height:${pxH*0.25}px;background:black;"></div>
         </div>
-        <div style="text-align:center;margin-top:10px">
+        <div style="text-align:center;margin-top:10px;font-size:14px">
             <b>${name || "&nbsp;"}</b><br>
             ${id || "&nbsp;"}<br>
             <span style="opacity:0.7;">DM: ${dm || "&nbsp;"}</span>
-        </div>
-    `;
+        </div>`;
 }
 
 /************************************************************
  * SAVE TOOL
  ************************************************************/
 async function saveTool() {
-    const prefix = document.getElementById("customer-prefix").value.trim();
     const name = document.getElementById("tool-name").value.trim();
+    const customer_prefix = document.getElementById("customer-prefix").value.trim();
 
     if (!name) {
         alert("Název nástroje je povinný.");
@@ -345,7 +352,7 @@ async function saveTool() {
     }
 
     const obj = {
-        customer_prefix: prefix,
+        customer_prefix,
         name,
         diameter: parseFloat(document.getElementById("diameter").value) || null,
         length: parseFloat(document.getElementById("length").value) || null,
@@ -357,9 +364,8 @@ async function saveTool() {
     };
 
     const { error } = await supabaseClient.from("tools").insert(obj);
-
     if (error) {
-        alert("Nástroj se nepodařilo uložit!");
+        alert("❌ Chyba při ukládání nástroje.");
         return;
     }
 
@@ -371,29 +377,21 @@ async function saveTool() {
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
 
-    unlockForNewEntry();   // ← VOLNÝ REŽIM PŘI STARTU
+    resetForm(); // vždy začínáme v čistém režimu
 
-    // zákazník
     document.getElementById("customer-search").addEventListener("input", async e => {
-        const text = e.target.value.trim();
-        const list = await searchCustomers(text);
-        renderCustomerSuggestions(list, text);
+        const txt = e.target.value.trim();
+        const list = await searchCustomers(txt);
+        renderCustomerSuggestions(list, txt);
     });
 
-    // nástroj
     document.getElementById("tool-search").addEventListener("input", async () => {
         const q = document.getElementById("tool-search").value.trim();
         const prefix = document.getElementById("customer-prefix").value.trim();
-
-        if (!q) {
-            unlockForNewEntry();  // ← vrátíme volný režim
-        }
-
         const list = await searchTools(q, prefix);
         renderToolSuggestions(list);
     });
 
-    // preview update
     ["tool-name","diameter","length","customer-tool-id","dm-content"]
         .forEach(id => document.getElementById(id).addEventListener("input", updatePreview));
 
