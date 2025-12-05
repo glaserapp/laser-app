@@ -9,8 +9,14 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
  * GLOBAL STATE
  ************************************************************/
 let editMode = false;
-let loadedToolData = null;   // když je null → režim volného zápisu
+let loadedToolData = null;   // null = volný režim, jinak je načtený uložený nástroj
 
+let customerHoverIndex = -1;
+let toolHoverIndex = -1;
+
+/************************************************************
+ * HELPERS
+ ************************************************************/
 function isToolLoaded() {
     return !!loadedToolData;
 }
@@ -19,7 +25,6 @@ function isToolLoaded() {
  * EDIT / LOCK MODE
  ************************************************************/
 function toggleEditMode() {
-    // EDIT má smysl jen u načteného uloženého nástroje
     if (!isToolLoaded()) {
         alert("Nejprve načti uložený nástroj (vyhledáním) – teprve pak má EDIT smysl.");
         return;
@@ -31,11 +36,9 @@ function toggleEditMode() {
     editMode = !editMode;
 
     if (editMode) {
-        // Odemknout – povolit dočasné úpravy
         btn.textContent = "🔒 Zamknout parametry";
         sidebar.classList.remove("locked");
     } else {
-        // Zamknout – vrátit hodnoty do uloženého stavu
         btn.textContent = "✏️ Editovat parametry";
         sidebar.classList.add("locked");
         if (loadedToolData) restoreLoadedTool();
@@ -59,7 +62,7 @@ function restoreLoadedTool() {
 }
 
 /************************************************************
- * RESET FORMULÁŘE
+ * RESET FORM
  ************************************************************/
 function resetAll() {
     const sidebar = document.getElementById("sidebar");
@@ -67,31 +70,25 @@ function resetAll() {
 
     loadedToolData = null;
     editMode = false;
+
     sidebar.classList.remove("locked");
+    editBtn.style.display = "none";
     editBtn.textContent = "✏️ Editovat parametry";
 
-    const idsToClear = [
-        "customer-search",
-        "customer-prefix",
-        "tool-search",
-        "tool-name",
-        "diameter",
-        "length",
-        "customer-tool-id",
-        "serial-prefix",
-        "dm-content"
-    ];
+    // Vyčistit všechna textová a číselná pole
+    const inputs = sidebar.querySelectorAll("input[type='text'], input[type='number']");
+    inputs.forEach(el => el.value = "");
 
-    idsToClear.forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-    });
-
+    // Checkboxy
     document.getElementById("dm-enable").checked = false;
     document.getElementById("serial-enable").checked = false;
 
+    // Dropdowny schovat
     document.getElementById("customer-suggestions").style.display = "none";
     document.getElementById("tool-suggestions").style.display = "none";
+
+    customerHoverIndex = -1;
+    toolHoverIndex = -1;
 
     updatePreview();
 }
@@ -118,10 +115,11 @@ async function searchCustomers(text) {
 function renderCustomerSuggestions(list, inputText) {
     const box = document.getElementById("customer-suggestions");
     box.innerHTML = "";
+    customerHoverIndex = -1;
 
-    // možnost založit nového zákazníka
     if (!list.length && inputText.length >= 2) {
         const div = document.createElement("div");
+        div.className = "dropdown-item new-item";
         div.innerHTML = `+ Založit zákazníka: <b>${inputText}</b>`;
         div.onclick = () => createNewCustomer(inputText);
         box.appendChild(div);
@@ -131,6 +129,7 @@ function renderCustomerSuggestions(list, inputText) {
 
     list.forEach(c => {
         const div = document.createElement("div");
+        div.className = "dropdown-item";
         div.textContent = `${c.name} (${c.prefix})`;
         div.onclick = () => selectCustomer(c);
         box.appendChild(div);
@@ -139,22 +138,20 @@ function renderCustomerSuggestions(list, inputText) {
     box.style.display = list.length ? "block" : "none";
 }
 
-// prefix generujeme jako 2 písmena + 2 čísla, s kontrolou obsazenosti
+// 2 písmena + 2 čísla, + speciál pro „šablona“ (TMP01…)
 async function generateCustomerPrefix(name) {
     const clean = (name || "")
-        .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // odstranit diakritiku
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^A-Za-z]/g, "")
         .toUpperCase();
 
     let base = clean.slice(0, 2) || "CU";
 
-    // speciální případ šablony
     const lower = name.toLowerCase().trim();
     if (lower === "šablona" || lower === "sablona") {
-        base = "TP"; // TMPxx / TPxx – interní, netiskne se
+        base = "TMP";   // TMP01, TMP02…
     }
 
-    // najdeme první volnou kombinaci base + 2 čísla
     for (let i = 1; i <= 99; i++) {
         const candidate = base + String(i).padStart(2, "0");
 
@@ -169,12 +166,9 @@ async function generateCustomerPrefix(name) {
             break;
         }
 
-        if (!data) {
-            return candidate;
-        }
+        if (!data) return candidate;
     }
 
-    // fallback – kdyby náhodou všechno bylo obsazené
     return base + String(Math.floor(Math.random() * 90 + 10));
 }
 
@@ -199,9 +193,11 @@ async function createNewCustomer(name) {
 function selectCustomer(item) {
     document.getElementById("customer-search").value = item.name;
     document.getElementById("customer-prefix").value = item.prefix;
-    document.getElementById("serial-prefix").value = item.prefix;
+    document.getElementById("serial-prefix").value   = item.prefix;
 
-    document.getElementById("customer-suggestions").style.display = "none";
+    const box = document.getElementById("customer-suggestions");
+    box.style.display = "none";
+    customerHoverIndex = -1;
 }
 
 /************************************************************
@@ -232,6 +228,7 @@ async function searchTools(q, prefix) {
 function renderToolSuggestions(list) {
     const box = document.getElementById("tool-suggestions");
     box.innerHTML = "";
+    toolHoverIndex = -1;
 
     if (!list.length) {
         box.style.display = "none";
@@ -240,7 +237,7 @@ function renderToolSuggestions(list) {
 
     list.forEach(t => {
         const div = document.createElement("div");
-        div.className = "tool-suggestion";
+        div.className = "dropdown-item tool-suggestion";
         div.textContent = `${t.name} · ${t.customer_tool_id || "bez ID"}`;
         div.onclick = () => loadTool(t);
         box.appendChild(div);
@@ -256,13 +253,14 @@ async function loadTool(tool) {
     loadedToolData = tool;
     editMode = false;
 
-    // zamknout parametry (jen lockable prvky)
+    // zamknout parametry (lockable-field)
     sidebar.classList.add("locked");
 
-    // EDIT tlačítko
+    // zobrazit EDIT tlačítko
+    editBtn.style.display = "block";
     editBtn.textContent = "✏️ Editovat parametry";
 
-    // vyplnit parametry nástroje
+    // parametry nástroje
     document.getElementById("tool-name").value        = tool.name || "";
     document.getElementById("diameter").value         = tool.diameter ?? "";
     document.getElementById("length").value           = tool.length ?? "";
@@ -272,10 +270,9 @@ async function loadTool(tool) {
     document.getElementById("serial-prefix").value    = tool.serial_prefix || tool.customer_prefix || "";
     document.getElementById("dm-content").value       = tool.dm_code ?? "";
 
-    // nastavíme prefix zákazníka pro další vyhledávání
-    document.getElementById("customer-prefix").value = tool.customer_prefix || "";
+    document.getElementById("customer-prefix").value  = tool.customer_prefix || "";
 
-    // dotáhneme název zákazníka podle prefixu
+    // doplnit jméno zákazníka podle prefixu
     if (tool.customer_prefix) {
         const { data, error } = await supabaseClient
             .from("customers")
@@ -288,10 +285,48 @@ async function loadTool(tool) {
         }
     }
 
-    // schovat návrhy
     document.getElementById("tool-suggestions").style.display = "none";
+    toolHoverIndex = -1;
 
     updatePreview();
+}
+
+/************************************************************
+ * DROPDOWN NAVIGATION (klávesnice)
+ ************************************************************/
+function handleDropdownKey(e, type) {
+    const box = document.getElementById(
+        type === "customer" ? "customer-suggestions" : "tool-suggestions"
+    );
+    const items = box.querySelectorAll(".dropdown-item");
+    if (!items.length) return;
+
+    let idx = type === "customer" ? customerHoverIndex : toolHoverIndex;
+
+    if (e.key === "ArrowDown") {
+        e.preventDefault();
+        idx = (idx + 1 + items.length) % items.length;
+    } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        idx = (idx - 1 + items.length) % items.length;
+    } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (idx >= 0 && idx < items.length) {
+            items[idx].click();
+        }
+        return;
+    } else {
+        return;
+    }
+
+    // vizuální zvýraznění
+    items.forEach((el, i) => el.classList.toggle("hover", i === idx));
+
+    if (type === "customer") {
+        customerHoverIndex = idx;
+    } else {
+        toolHoverIndex = idx;
+    }
 }
 
 /************************************************************
@@ -361,7 +396,7 @@ async function generateSerial() {
  * PREVIEW RENDER
  ************************************************************/
 function updatePreview() {
-    const name     = document.getElementById("tool-name").value || "";
+    const name = document.getElementById("tool-name").value || "";
     const diameter = parseFloat(document.getElementById("diameter").value) || 10;
     const length   = parseFloat(document.getElementById("length").value) || 50;
     const dm       = document.getElementById("dm-content").value || "";
@@ -390,8 +425,8 @@ function updatePreview() {
             box-shadow:0 6px 18px rgba(0,0,0,0.15);
         ">
             <div style="
-                width:${pxH*0.4}px;
-                height:${pxH*0.25}px;
+                width:${pxH * 0.4}px;
+                height:${pxH * 0.25}px;
                 background:black;
                 border-radius:6px;
             "></div>
@@ -424,8 +459,8 @@ async function saveTool() {
     const obj = {
         customer_prefix,
         name,
-        diameter:  parseFloat(document.getElementById("diameter").value) || null,
-        length:    parseFloat(document.getElementById("length").value)   || null,
+        diameter: parseFloat(document.getElementById("diameter").value) || null,
+        length:   parseFloat(document.getElementById("length").value)   || null,
         dm_enabled:      document.getElementById("dm-enable").checked,
         serial_enabled:  document.getElementById("serial-enable").checked,
         serial_prefix:   document.getElementById("serial-prefix").value.trim(),
@@ -455,21 +490,27 @@ function exportLabel() {
  * EVENT INIT
  ************************************************************/
 window.addEventListener("DOMContentLoaded", () => {
+    const editBtn = document.getElementById("edit-toggle");
+    editBtn.style.display = "none"; // dokud není načtený nástroj, EDIT neukazujeme
 
-    // Zákazník – autocomplete
-    document.getElementById("customer-search").addEventListener("input", async e => {
+    // Zákazník – autocomplete + šipky
+    const customerInput = document.getElementById("customer-search");
+    customerInput.addEventListener("input", async e => {
         const txt = e.target.value.trim();
         const list = await searchCustomers(txt);
         renderCustomerSuggestions(list, txt);
     });
+    customerInput.addEventListener("keydown", e => handleDropdownKey(e, "customer"));
 
-    // Nástroj – vyhledávání podle názvu / ID
-    document.getElementById("tool-search").addEventListener("input", async () => {
+    // Nástroj – vyhledávání + šipky
+    const toolInput = document.getElementById("tool-search");
+    toolInput.addEventListener("input", async () => {
         const q      = document.getElementById("tool-search").value.trim();
         const prefix = document.getElementById("customer-prefix").value.trim();
         const list   = await searchTools(q, prefix);
         renderToolSuggestions(list);
     });
+    toolInput.addEventListener("keydown", e => handleDropdownKey(e, "tool"));
 
     // Live preview
     ["tool-name","diameter","length","customer-tool-id","dm-content"]
