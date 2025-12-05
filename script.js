@@ -6,10 +6,10 @@ const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
 const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 /************************************************************
- * GLOBAL STATE (EDIT/LOCK)
+ * GLOBAL STATE
  ************************************************************/
 let editMode = false;
-let loadedToolData = null; // uložený stav
+let loadedToolData = null;
 
 /************************************************************
  * EDIT / LOCK MODE
@@ -34,7 +34,6 @@ function toggleEditMode() {
 function restoreLoadedTool() {
     const d = loadedToolData;
 
-    document.getElementById("customer-prefix").value = d.customer_prefix || "";
     document.getElementById("tool-name").value = d.name || "";
     document.getElementById("diameter").value = d.diameter ?? "";
     document.getElementById("length").value = d.length ?? "";
@@ -54,6 +53,7 @@ function restoreLoadedTool() {
  ************************************************************/
 async function searchCustomers(text) {
   if (!text) return [];
+
   const { data, error } = await supabaseClient.from("customers")
     .select("*")
     .ilike("name", `%${text}%`)
@@ -105,6 +105,61 @@ function selectCustomer(item) {
 }
 
 /************************************************************
+ * VYHLEDÁVÁNÍ NÁSTROJŮ
+ ************************************************************/
+async function searchTools(query, prefix) {
+    if (!query || !prefix) return [];
+
+    const { data, error } = await supabaseClient
+        .from("tools")
+        .select("*")
+        .eq("customer_prefix", prefix)
+        .or(`name.ilike.%${query}%,customer_tool_id.ilike.%${query}%`)
+        .order("name");
+
+    return error ? [] : data;
+}
+
+function renderToolSuggestions(list) {
+    const box = document.getElementById("tool-suggestions");
+    box.innerHTML = "";
+
+    if (list.length === 0) {
+        box.classList.add("hidden");
+        return;
+    }
+
+    list.forEach(tool => {
+        const div = document.createElement("div");
+        div.className = "tool-suggestion";
+        div.textContent = `${tool.name} · ${tool.customer_tool_id || "bez ID"}`;
+        div.onclick = () => loadTool(tool);
+        box.appendChild(div);
+    });
+
+    box.classList.remove("hidden");
+}
+
+function loadTool(tool) {
+    loadedToolData = tool;
+
+    document.getElementById("tool-name").value = tool.name;
+    document.getElementById("diameter").value = tool.diameter || "";
+    document.getElementById("length").value = tool.length || "";
+    document.getElementById("customer-tool-id").value = tool.customer_tool_id || "";
+
+    document.getElementById("dm-enable").checked = tool.dm_enabled;
+    document.getElementById("serial-enable").checked = tool.serial_enabled;
+
+    document.getElementById("serial-prefix").value = tool.serial_prefix || tool.customer_prefix;
+    document.getElementById("dm-content").value = tool.dm_code || "";
+
+    document.getElementById("tool-suggestions").classList.add("hidden");
+
+    updatePreview();
+}
+
+/************************************************************
  * SERIAL GENERATOR
  ************************************************************/
 async function generateSerial() {
@@ -120,7 +175,7 @@ async function generateSerial() {
       return;
   }
 
-  const { data, error } = await supabaseClient
+  const { data } = await supabaseClient
       .from("serial_counters")
       .select("*")
       .eq("prefix", prefix)
@@ -198,7 +253,7 @@ async function saveTool() {
   if (!error) {
     alert("Nástroj uložen.");
     loadedToolData = obj;
-    toggleEditMode(); // zamkne zpět
+    toggleEditMode();
   }
 }
 
@@ -211,6 +266,14 @@ window.addEventListener("DOMContentLoaded", () => {
         const txt = e.target.value.trim();
         const res = await searchCustomers(txt);
         renderSuggestions(res, txt);
+    });
+
+    document.getElementById("tool-search").addEventListener("input", async () => {
+        const q = document.getElementById("tool-search").value.trim();
+        const prefix = document.getElementById("customer-prefix").value.trim();
+
+        const results = await searchTools(q, prefix);
+        renderToolSuggestions(results);
     });
 
     ["tool-name","diameter","length","customer-tool-id","dm-content"]
