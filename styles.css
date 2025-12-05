@@ -12,7 +12,7 @@ body {
     color: #222;
 }
 
-/* LAYOUT */
+/* ====== LAYOUT ====== */
 .app {
     display: flex;
     gap: 30px;
@@ -21,7 +21,7 @@ body {
     align-items: flex-start;
 }
 
-/* SIDEBAR */
+/* ====== SIDEBAR ====== */
 .sidebar {
     width: 300px;
     background: white;
@@ -65,7 +65,7 @@ body {
     font-size: 18px;
 }
 
-/* BUTTONS TOP */
+/* ====== TOP BUTTONS ====== */
 .reset-btn,
 .edit-btn {
     width: 100%;
@@ -94,7 +94,7 @@ body {
     background: #0d5ecc;
 }
 
-/* FORM ELEMENTS */
+/* ====== INPUTS & LABELS ====== */
 .sidebar label {
     display: block;
     margin-top: 8px;
@@ -128,12 +128,7 @@ body {
     margin: 0;
 }
 
-/* SIDEBAR BUTTONS */
-.sidebar button {
-    font-size: 15px;
-}
-
-/* MODRÁ TLAČÍTKA (mimo reset/edit/export) */
+/* ====== BLUE FORM BUTTONS ====== */
 .sidebar button.lockable-field {
     width: 100%;
     padding: 10px;
@@ -149,7 +144,7 @@ body {
     background: #0f6bd4;
 }
 
-/* EXPORT BUTTON */
+/* ====== EXPORT BUTTON ====== */
 .export {
     width: 100%;
     padding: 10px;
@@ -165,13 +160,12 @@ body {
     background: #5d4037;
 }
 
-/* AUTOCOMPLETE WRAPPERS */
+/* ====== AUTOCOMPLETE ====== */
 .customer-search-wrapper,
 .tool-search-wrapper {
     position: relative;
 }
 
-/* DROPDOWN */
 .dropdown {
     position: absolute;
     left: 0;
@@ -208,20 +202,25 @@ body {
     background: #d6edff;
 }
 
-/* MAIN AREA */
+/* ====== MAIN AREA ====== */
 .main {
     flex: 1;
 }
 
 .main h2 {
     margin-bottom: 15px;
+    font-size: 20px;
+    font-weight: 700;
 }
 
-/* PREVIEW BOX */
+/* ====== PREVIEW BOX ====== */
 .preview-box {
     background: white;
     border-radius: 12px;
     padding: 20px;
     border: 1px solid #ddd;
     min-height: 260px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
