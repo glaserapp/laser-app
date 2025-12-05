@@ -1,9 +1,5 @@
 /* RESET */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
@@ -12,7 +8,7 @@ body {
     color: #222;
 }
 
-/* LAYOUT */
+/* APP LAYOUT */
 .app {
     display: flex;
     gap: 30px;
@@ -30,34 +26,30 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     position: sticky;
     top: 20px;
-    max-height: calc(100vh - 40px);
-    overflow-y: auto;
 }
 
-h1 {
-    font-size: 22px;
-    margin-bottom: 4px;
+/* LOCK LOGIC */
+.sidebar.locked input,
+.sidebar.locked textarea,
+.sidebar.locked select {
+    background: #e9e9e9 !important;
+    pointer-events: none !important;
+    opacity: 0.55;
 }
 
-.subtitle {
-    font-size: 14px;
-    opacity: 0.6;
-    margin-bottom: 16px;
-}
+h1 { font-size: 22px; margin-bottom: 4px; }
+.subtitle { font-size: 14px; opacity: 0.6; margin-bottom: 16px; }
 
-/* HEADERS */
 .sidebar h2 {
-    margin-top: 20px;
-    margin-bottom: 8px;
+    margin-top: 18px;
+    margin-bottom: 6px;
     font-size: 17px;
     display: flex;
     align-items: center;
     gap: 6px;
 }
 
-.icon {
-    font-size: 18px;
-}
+.icon { font-size: 18px; }
 
 /* EDIT BUTTON */
 .edit-btn {
@@ -76,13 +68,7 @@ h1 {
     background: #0d5ecc;
 }
 
-/* FORM ELEMENTS */
-.sidebar label {
-    display: block;
-    margin-top: 8px;
-    font-weight: 600;
-}
-
+/* INPUTS */
 .sidebar input {
     width: 100%;
     padding: 7px 9px;
@@ -92,7 +78,7 @@ h1 {
     font-size: 15px;
 }
 
-/* CHECKBOX FIX */
+/* CHECKBOXES */
 .sidebar input[type="checkbox"] {
     width: auto;
     transform: scale(1.2);
@@ -102,15 +88,16 @@ h1 {
 /* BUTTONS */
 .sidebar button {
     width: 100%;
-    font-weight: 600;
     padding: 10px;
-    border-radius: 8px;
+    font-size: 15px;
+    font-weight: 600;
     margin-top: 10px;
     border: none;
+    border-radius: 8px;
     cursor: pointer;
 }
 
-/* BLUE ACTION BUTTONS (vše kromě edit-btn a export) */
+/* BLUE BUTTONS */
 .sidebar button:not(.edit-btn):not(.export) {
     background: #1984ff;
     color: white;
@@ -119,7 +106,7 @@ h1 {
     background: #0f6bd4;
 }
 
-/* BROWN EXPORT BUTTON */
+/* EXPORT BUTTON */
 .export {
     background: #6d4c41 !important;
     color: white !important;
@@ -128,33 +115,19 @@ h1 {
     background: #5d4037 !important;
 }
 
-/* LOCK LOGIC – zamykají se jen prvky s class="lockable" */
-.sidebar.locked .lockable {
-    background: #e8e8e8;
-    pointer-events: none;
-    opacity: 0.6;
-}
-
-/* AUTOCOMPLETE WRAPPERS */
-.customer-search-wrapper,
-.tool-search-wrapper {
-    position: relative;
-}
-
-/* DROPDOWNS */
+/* AUTOCOMPLETE DROPDOWNS */
 .dropdown {
     position: absolute;
     top: 42px;
-    left: 0;
     width: 100%;
-    max-height: 230px;
-    overflow-y: auto;
-    border: 1px solid #ddd;
     background: white;
+    border: 1px solid #d0d0d0;
     border-radius: 6px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    display: none;
+    max-height: 230px;
+    overflow-y: auto;
     z-index: 9999;
+    display: none;
 }
 
 .dropdown div {
@@ -162,22 +135,15 @@ h1 {
     cursor: pointer;
     font-size: 15px;
 }
-
 .dropdown div:hover {
-    background: #f3f3f3;
+    background: #f1f1f1;
 }
 
-.tool-suggestion {
-    font-weight: 500;
-}
-
-/* MAIN AREA */
+/* MAIN / PREVIEW PANEL */
 .main {
     flex: 1;
-}
-
-.main h2 {
-    margin-bottom: 15px;
+    position: sticky;
+    top: 20px;
 }
 
 /* PREVIEW BOX */
