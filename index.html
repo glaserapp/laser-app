@@ -4,9 +4,7 @@
     <meta charset="UTF-8">
     <title>Laser Label Builder</title>
 
-    <!-- Supabase klient (nutný pro vyhledávání & ukládání) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -15,11 +13,14 @@
 <div class="app">
 
     <!-- SIDEBAR -->
-    <div class="sidebar">
+    <div class="sidebar locked" id="sidebar">
         <h1>Laser Label Builder</h1>
-        <p>Nultá verze · Offline demo</p>
+        <p class="subtitle">Nultá verze · Offline demo</p>
 
-        <!-- ZÁKAZNÍK – AUTOCOMPLETE -->
+        <!-- EDIT / LOCK -->
+        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat</button>
+
+        <!-- ZÁKAZNÍK -->
         <h2>🧩 Zákazník</h2>
 
         <div class="customer-search-wrapper">
@@ -37,40 +38,31 @@
         <input id="tool-name" type="text" placeholder="TEST VRTÁK 45623">
 
         <label>Průměr stopky [mm]</label>
-        <input id="diameter" type="number" step="0.01" placeholder="např. 10">
+        <input id="diameter" type="number" step="0.01">
 
         <label>Délka stopky [mm]</label>
-        <input id="length" type="number" placeholder="např. 50">
+        <input id="length" type="number">
 
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
-        <input id="customer-tool-id" type="text" placeholder="např. 540-887-0021">
+        <input id="customer-tool-id" type="text">
 
         <!-- DM & SERIAL -->
         <h2>🔢 DM & Sériové číslo</h2>
 
-        <label>
-            <input type="checkbox" id="dm-enable">
-            Povolit DataMatrix
-        </label>
-
-        <label>
-            <input type="checkbox" id="serial-enable">
-            Použít sériové číslo
-        </label>
+        <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
+        <label><input type="checkbox" id="serial-enable"> Použít sériové číslo</label>
 
         <label>Prefix pro sériové číslo</label>
-        <input id="serial-prefix" type="text" placeholder="např. AH01">
+        <input id="serial-prefix" type="text">
 
         <label>Obsah DM kódu</label>
-        <input id="dm-content" type="text" placeholder="(automaticky)">
+        <input id="dm-content" type="text">
 
         <button onclick="generateSerial()">Generovat DM / Serial</button>
 
-        <!-- ULOŽIT -->
         <h2>💾 Uložit nástroj</h2>
         <button onclick="saveTool()">Uložit nástroj</button>
 
-        <!-- EXPORT -->
         <h2>📦 Export</h2>
         <button onclick="exportLabel()">Exportovat štítek</button>
     </div>
@@ -83,7 +75,6 @@
 
 </div>
 
-<!-- JS soubory -->
 <script src="script.js"></script>
 </body>
 </html>
