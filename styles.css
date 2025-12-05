@@ -1,165 +1,190 @@
 /* RESET */
 * {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
-  background: #f5f5f7;
-  padding: 20px;
-  color: #222;
+    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
+    background: #f5f5f7;
+    padding: 20px;
+    color: #222;
 }
 
 /* LAYOUT */
 .app {
-  display: flex;
-  gap: 30px;
-  max-width: 1700px;
-  margin: auto;
-  align-items: flex-start;
+    display: flex;
+    gap: 30px;
+    max-width: 1700px;
+    margin: auto;
+    align-items: flex-start;
 }
 
-/* === SIDEBAR === */
+/* SIDEBAR */
 .sidebar {
-  width: 300px;
-  background: white;
-  padding: 20px;
-  border-radius: 16px;
-  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-  position: sticky;
-  top: 20px;
+    width: 300px;
+    background: white;
+    padding: 20px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    position: sticky;
+    top: 20px;
+}
+
+.sidebar.locked input,
+.sidebar.locked select,
+.sidebar.locked textarea {
+    background: #e9e9e9;
+    pointer-events: none;
+    opacity: 0.65;
 }
 
 .sidebar h1 {
-  font-size: 22px;
-  margin-bottom: 4px;
+    font-size: 22px;
+    margin-bottom: 4px;
 }
 
-.sidebar .subtitle {
-  font-size: 14px;
-  opacity: 0.6;
-  margin-bottom: 14px;
+.subtitle {
+    font-size: 14px;
+    opacity: 0.6;
+    margin-bottom: 16px;
 }
 
-/* === EDIT LOCKING === */
-.sidebar.locked input,
-.sidebar.locked select,
-.sidebar.locked textarea,
-.sidebar.locked button.input-btn,
-.sidebar.locked .tool-search-wrapper input {
-  background: #e9e9e9;
-  pointer-events: none;
-  opacity: 0.65;
+/* HEADERS */
+.sidebar h2 {
+    margin-top: 18px;
+    margin-bottom: 6px;
+    font-size: 17px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
 }
 
+.icon {
+    font-size: 18px;
+}
+
+/* EDIT BUTTON */
 .edit-btn {
-  width: 100%;
-  padding: 10px;
-  font-size: 16px;
-  background: #1a73e8;
-  color: white;
-  border-radius: 10px;
-  border: none;
-  cursor: pointer;
-  margin-bottom: 12px;
-  font-weight: 600;
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+    background: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    font-weight: 600;
 }
-.edit-btn:hover { background: #0d5ecc; }
+.edit-btn:hover {
+    background: #0d5ecc;
+}
 
 /* FORM ELEMENTS */
 .sidebar label {
-  display: block;
-  margin-top: 10px;
-  font-weight: 600;
+    display: block;
+    margin-top: 8px;
+    font-weight: 600;
 }
 
 .sidebar input {
-  width: 100%;
-  padding: 7px 9px;
-  margin-top: 4px;
-  border-radius: 6px;
-  border: 1px solid #cfcfcf;
-  font-size: 15px;
+    width: 100%;
+    padding: 7px 9px;
+    margin-top: 3px;
+    border-radius: 6px;
+    border: 1px solid #cfcfcf;
+    font-size: 15px;
 }
 
-/* BUTTONS */
+/* Buttons inside sidebar */
 .sidebar button {
-  width: 100%;
-  padding: 10px;
-  font-size: 15px;
-  font-weight: 600;
-  margin-top: 10px;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-weight: 600;
+    margin-top: 10px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
 }
 
-.sidebar button.primary {
-  background: #1a73e8;
-  color: white;
+/* Blue primary buttons */
+.sidebar button:not(.edit-btn):not(.export) {
+    background: #1984ff;
+    color: white;
 }
-.sidebar button.primary:hover {
-  background: #0d5ecc;
+.sidebar button:not(.edit-btn):not(.export):hover {
+    background: #0f6bd4;
 }
 
+/* EXPORT button */
 .sidebar button.export {
-  background: #795548;
-  color: white;
+    background: #6d4c41;
+    color: white;
 }
 .sidebar button.export:hover {
-  background: #5d4037;
+    background: #5d4037;
 }
 
-/* AUTOCOMPLETE */
+/* AUTOCOMPLETE BOXES */
 .customer-search-wrapper,
 .tool-search-wrapper {
-  position: relative;
+    position: relative;
 }
 
 #customer-suggestions,
 #tool-suggestions {
-  position: absolute;
-  top: 40px;
-  width: 100%;
-  background: white;
-  border: 1px solid #d0d0d0;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-height: 220px;
-  overflow-y: auto;
-  z-index: 5000;
-  display: none;
+    position: absolute;
+    top: 42px;
+    width: 100%;
+    background: white;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    max-height: 230px;
+    overflow-y: auto;
+    z-index: 9999;
+    display: none;
 }
 
-.suggestion-item {
-  padding: 10px 12px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
+.suggestion-item,
+.tool-suggestion,
+.suggestion-new {
+    padding: 10px 12px;
+    cursor: pointer;
+    font-size: 15px;
 }
-.suggestion-item:hover { background: #f4f4f4; }
+
+.suggestion-item:hover,
+.tool-suggestion:hover {
+    background: #f3f3f3;
+}
 
 .suggestion-new {
-  padding: 10px 12px;
-  background: #e7f5ff;
-  color: #0070c9;
-  font-weight: 600;
-  cursor: pointer;
+    background: #e7f5ff;
+    color: #0063c9;
+    font-weight: 600;
 }
-.suggestion-new:hover { background: #d2edff; }
+.suggestion-new:hover {
+    background: #d6edff;
+}
 
-.hidden { display: none; }
+.hidden {
+    display: none;
+}
 
-/* === MAIN PREVIEW === */
+/* MAIN AREA */
 .main {
-  flex: 1;
+    flex: 1;
 }
 
+/* PREVIEW BOX */
 .preview-box {
-  background: white;
-  border-radius: 12px;
-  padding: 20px;
-  border: 1px solid #ddd;
-  min-height: 260px;
+    background: white;
+    border-radius: 12px;
+    padding: 20px;
+    border: 1px solid #ddd;
+    min-height: 260px;
 }
