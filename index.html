@@ -14,6 +14,7 @@
 
     <!-- SIDEBAR -->
     <div class="sidebar locked" id="sidebar">
+
         <h1>Laser Label Builder</h1>
         <p class="subtitle">Nultá verze · Offline demo</p>
 
@@ -21,7 +22,7 @@
         <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat</button>
 
         <!-- ZÁKAZNÍK -->
-        <h2>🧩 Zákazník</h2>
+        <h2><span class="icon">🧩</span> Zákazník</h2>
 
         <div class="customer-search-wrapper">
             <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka…">
@@ -31,15 +32,16 @@
         <label>Prefix zákazníka</label>
         <input id="customer-prefix" type="text" placeholder="např. AH01">
 
-        <!-- VYHLEDAT ULOŽENÝ NÁSTROJ -->
-        <h2>🔍 Vyhledat uložený nástroj</h2>
+        <!-- VYHLEDAT NÁSTROJ -->
+        <h2><span class="icon">🔍</span> Vyhledat uložený nástroj</h2>
+
         <div class="tool-search-wrapper">
-            <input id="tool-search" type="text" placeholder="Hledej podle názvu nebo ID…">
+            <input id="tool-search" type="text" placeholder="Hledat podle názvu nebo ID…">
             <div id="tool-suggestions" class="hidden"></div>
         </div>
 
         <!-- PARAMETRY NÁSTROJE -->
-        <h2>🛠 Parametry nástroje</h2>
+        <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
         <input id="tool-name" type="text" placeholder="TEST VRTÁK 45623">
@@ -54,7 +56,7 @@
         <input id="customer-tool-id" type="text">
 
         <!-- DM & SERIAL -->
-        <h2>🔢 DM & Sériové číslo</h2>
+        <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
         <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
         <label><input type="checkbox" id="serial-enable"> Použít sériové číslo</label>
@@ -67,11 +69,14 @@
 
         <button onclick="generateSerial()">Generovat DM / Serial</button>
 
-        <h2>💾 Uložit nástroj</h2>
+        <!-- ULOŽIT -->
+        <h2><span class="icon">💾</span> Uložit nástroj</h2>
         <button onclick="saveTool()">Uložit nástroj</button>
 
-        <h2>📦 Export</h2>
+        <!-- EXPORT -->
+        <h2><span class="icon">📦</span> Export</h2>
         <button onclick="exportLabel()">Exportovat štítek</button>
+
     </div>
 
     <!-- MAIN AREA -->
