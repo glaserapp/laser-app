@@ -30,6 +30,8 @@ body {
     box-shadow: 0 4px 20px rgba(0,0,0,0.12);
     position: sticky;
     top: 20px;
+    max-height: calc(100vh - 40px);
+    overflow-y: auto;
 }
 
 .sidebar.locked input,
@@ -53,8 +55,8 @@ body {
 
 /* HEADERS */
 .sidebar h2 {
-    margin-top: 18px;
-    margin-bottom: 6px;
+    margin-top: 20px;
+    margin-bottom: 8px;
     font-size: 17px;
     display: flex;
     align-items: center;
@@ -98,7 +100,14 @@ body {
     font-size: 15px;
 }
 
-/* Buttons inside sidebar */
+/* FIX FOR CHECKBOXES */
+.sidebar input[type="checkbox"] {
+    width: auto;
+    margin-right: 6px;
+    transform: scale(1.2);
+}
+
+/* BUTTONS */
 .sidebar button {
     width: 100%;
     padding: 10px;
@@ -110,7 +119,7 @@ body {
     cursor: pointer;
 }
 
-/* Blue primary buttons */
+/* BLUE BUTTONS */
 .sidebar button:not(.edit-btn):not(.export) {
     background: #1984ff;
     color: white;
@@ -119,7 +128,7 @@ body {
     background: #0f6bd4;
 }
 
-/* EXPORT button */
+/* EXPORT BUTTON */
 .sidebar button.export {
     background: #6d4c41;
     color: white;
@@ -128,7 +137,7 @@ body {
     background: #5d4037;
 }
 
-/* AUTOCOMPLETE BOXES */
+/* AUTOCOMPLETE */
 .customer-search-wrapper,
 .tool-search-wrapper {
     position: relative;
@@ -178,6 +187,10 @@ body {
 /* MAIN AREA */
 .main {
     flex: 1;
+}
+
+.main h2 {
+    margin-bottom: 15px;
 }
 
 /* PREVIEW BOX */
