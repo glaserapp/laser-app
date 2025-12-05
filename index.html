@@ -18,33 +18,33 @@
         <h1>Laser Label Builder</h1>
         <p class="subtitle">Nultá verze · Offline demo</p>
 
-        <!-- EDIT / LOCK -->
-        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat</button>
+        <!-- EDIT / LOCK BUTTON -->
+        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat parametry</button>
 
         <!-- ZÁKAZNÍK -->
         <h2><span class="icon">🧩</span> Zákazník</h2>
 
         <div class="customer-search-wrapper">
             <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka…">
-            <div id="customer-suggestions" class="hidden"></div>
+            <div id="customer-suggestions" class="dropdown"></div>
         </div>
 
         <label>Prefix zákazníka</label>
         <input id="customer-prefix" type="text" placeholder="např. AH01">
 
-        <!-- VYHLEDAT NÁSTROJ -->
+        <!-- HLEDAT NÁSTROJ -->
         <h2><span class="icon">🔍</span> Vyhledat uložený nástroj</h2>
 
         <div class="tool-search-wrapper">
             <input id="tool-search" type="text" placeholder="Hledat podle názvu nebo ID…">
-            <div id="tool-suggestions" class="hidden"></div>
+            <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY NÁSTROJE -->
+        <!-- PARAMETRY (zamykatelné) -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
-        <input id="tool-name" type="text" placeholder="TEST VRTÁK 45623">
+        <input id="tool-name" type="text">
 
         <label>Průměr stopky [mm]</label>
         <input id="diameter" type="number" step="0.01">
@@ -55,7 +55,7 @@
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
         <input id="customer-tool-id" type="text">
 
-        <!-- DM & SERIAL -->
+        <!-- DM / SERIAL -->
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
         <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
@@ -70,12 +70,12 @@
         <button onclick="generateSerial()">Generovat DM / Serial</button>
 
         <!-- ULOŽIT -->
-        <h2><span class="icon">💾</span> Uložit nástroj</h2>
+        <h2><span class="icon">💾</span> Uložit nový nástroj</h2>
         <button onclick="saveTool()">Uložit nástroj</button>
 
         <!-- EXPORT -->
         <h2><span class="icon">📦</span> Export</h2>
-        <button onclick="exportLabel()">Exportovat štítek</button>
+        <button class="export" onclick="exportLabel()">Exportovat štítek</button>
 
     </div>
 
