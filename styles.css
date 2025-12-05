@@ -1,157 +1,428 @@
-/* RESET */
-* { margin: 0; padding: 0; box-sizing: border-box; }
+/************************************************************
+ * INIT SUPABASE
+ ************************************************************/
+const SUPABASE_URL = "https://ovylsagjaskidrmiiunu.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_bxs0aUYwP5_l-Vdqc4eNEw_NYTtN5Oy";
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-body {
-    font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, sans-serif;
-    background: #f5f5f7;
-    padding: 20px;
-    color: #222;
+/************************************************************
+ * GLOBAL STATE
+ ************************************************************/
+let loadedToolData = null;      // když je null → volný režim
+let editMode = false;
+
+/************************************************************
+ * RESET FORM
+ ************************************************************/
+function resetAll() {
+
+    loadedToolData = null;
+    editMode = false;
+
+    document.getElementById("customer-search").value = "";
+    document.getElementById("customer-prefix").value = "";
+    document.getElementById("tool-search").value = "";
+
+    document.getElementById("tool-name").value = "";
+    document.getElementById("diameter").value = "";
+    document.getElementById("length").value = "";
+    document.getElementById("customer-tool-id").value = "";
+
+    document.getElementById("dm-enable").checked = false;
+    document.getElementById("serial-enable").checked = false;
+    document.getElementById("serial-prefix").value = "";
+    document.getElementById("dm-content").value = "";
+
+    document.getElementById("customer-suggestions").style.display = "none";
+    document.getElementById("tool-suggestions").style.display = "none";
+
+    // znovu uzamknout jen pokud je loaded nástroj -> ale není
+    document.getElementById("sidebar").classList.remove("locked");
+
+    // EDIT schovat
+    document.getElementById("edit-toggle").style.display = "none";
+
+    updatePreview();
 }
 
-/* LAYOUT */
-.app {
-    display: flex;
-    gap: 30px;
-    max-width: 1700px;
-    margin: auto;
+/************************************************************
+ * EDIT / LOCK MODE
+ ************************************************************/
+function toggleEditMode() {
+
+    if (!loadedToolData) {
+        alert("Nejprve načti uložený nástroj. EDIT nemá význam pro volný zápis.");
+        return;
+    }
+
+    editMode = !editMode;
+
+    const sidebar = document.getElementById("sidebar");
+    const btn = document.getElementById("edit-toggle");
+
+    if (editMode) {
+        btn.textContent = "🔒 Zamknout";
+        sidebar.classList.remove("locked");
+    } else {
+        btn.textContent = "✏️ Editovat";
+        sidebar.classList.add("locked");
+        restoreLoadedTool();
+    }
 }
 
-/* SIDEBAR */
-.sidebar {
-    width: 320px;
-    background: white;
-    padding: 22px;
-    border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
-    position: sticky;
-    top: 20px;
-    height: calc(100vh - 40px);
-    overflow-y: auto;
+function restoreLoadedTool() {
+    if (!loadedToolData) return;
+
+    const t = loadedToolData;
+
+    document.getElementById("tool-name").value = t.name || "";
+    document.getElementById("diameter").value = t.diameter ?? "";
+    document.getElementById("length").value = t.length ?? "";
+    document.getElementById("customer-tool-id").value = t.customer_tool_id ?? "";
+
+    document.getElementById("dm-enable").checked = !!t.dm_enabled;
+    document.getElementById("serial-enable").checked = !!t.serial_enabled;
+    document.getElementById("serial-prefix").value = t.serial_prefix || t.customer_prefix || "";
+    document.getElementById("dm-content").value = t.dm_code ?? "";
+
+    updatePreview();
 }
 
-.sidebar.locked .lockable-field {
-    background: #e9e9e9;
-    pointer-events: none;
-    opacity: 0.6;
+/************************************************************
+ * CUSTOMER SEARCH + PREFIX LOGIC
+ ************************************************************/
+async function searchCustomers(text) {
+    if (!text) return [];
+
+    const { data, error } = await supabaseClient
+        .from("customers")
+        .select("*")
+        .ilike("name", `%${text}%`)
+        .order("name");
+
+    if (error) return [];
+    return data || [];
 }
 
-h1 { font-size: 22px; margin-bottom: 4px; }
-.subtitle { font-size: 14px; opacity: 0.6; margin-bottom: 14px; }
+function renderCustomerSuggestions(list, input) {
 
-.sidebar h2 {
-    margin-top: 20px;
-    margin-bottom: 8px;
-    font-size: 17px;
-    display: flex;
-    align-items: center;
-    gap: 6px;
+    const box = document.getElementById("customer-suggestions");
+    box.innerHTML = "";
+
+    if (list.length === 0 && input.length >= 2) {
+        const div = document.createElement("div");
+        div.innerHTML = `+ Založit zákazníka <b>${input}</b>`;
+        div.onclick = () => createNewCustomer(input);
+        box.appendChild(div);
+        box.style.display = "block";
+        return;
+    }
+
+    list.forEach(c => {
+        const div = document.createElement("div");
+        div.textContent = `${c.name} (${c.prefix})`;
+        div.onclick = () => selectCustomer(c);
+        box.appendChild(div);
+    });
+
+    box.style.display = list.length ? "block" : "none";
 }
 
-.icon { font-size: 18px; }
+/*** PREFIX GENERATOR ***/
+async function generateCustomerPrefix(name) {
 
-/* BUTTONS */
-.reset-btn,
-.edit-btn {
-    width: 100%;
-    padding: 11px;
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    font-weight: 600;
-    margin-bottom: 10px;
+    let clean = (name || "")
+        .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^A-Za-z]/g, "")
+        .toUpperCase();
+
+    let base = clean.slice(0, 2) || "CU";
+
+    if (["šablona","sablona","šablony","sablony"].includes(name.toLowerCase().trim())) {
+        base = "TP"; // prefix TMP
+    }
+
+    // najdeme volné číslo 01–99
+    for (let i = 1; i <= 99; i++) {
+        const prefix = base + String(i).padStart(2, "0");
+
+        const { data } = await supabaseClient
+            .from("customers")
+            .select("id")
+            .eq("prefix", prefix)
+            .maybeSingle();
+
+        if (!data) return prefix;
+    }
+
+    // fallback – tohle nenastane, ale pro jistotu
+    return base + String(Math.floor(Math.random() * 90 + 10));
 }
 
-.reset-btn {
-    background: #555;
-    color: white;
-}
-.reset-btn:hover { background: #333; }
+async function createNewCustomer(name) {
 
-.edit-btn {
-    background: #1a73e8;
-    color: white;
-}
-.edit-btn:hover { background: #0d5ecc; }
+    const prefix = await generateCustomerPrefix(name);
 
-.sidebar button:not(.reset-btn):not(.edit-btn):not(.export) {
-    background: #1984ff;
-    color: white;
-}
-.sidebar button:hover { background: #0f6bd4; }
+    const { data, error } = await supabaseClient
+        .from("customers")
+        .insert({ name, prefix })
+        .select()
+        .single();
 
-.export {
-    background: #6d4c41 !important;
-    color: white !important;
-}
-.export:hover {
-    background: #5d4037 !important;
+    if (error) {
+        alert("Zákazníka se nepodařilo uložit.");
+        return;
+    }
+
+    selectCustomer(data);
 }
 
-/* INPUTS */
-.input-wrapper {
-    position: relative;
-    margin-bottom: 4px;
+function selectCustomer(item) {
+    document.getElementById("customer-search").value = item.name;
+    document.getElementById("customer-prefix").value = item.prefix;
+    document.getElementById("serial-prefix").value = item.prefix;
+
+    document.getElementById("customer-suggestions").style.display = "none";
 }
 
-.sidebar input {
-    width: 100%;
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    margin-top: 4px;
-    font-size: 15px;
+/************************************************************
+ * TOOL SEARCH
+ ************************************************************/
+async function searchTools(q, prefix) {
+    if (!q) return [];
+
+    let query = supabaseClient
+        .from("tools")
+        .select("*")
+        .or(`name.ilike.%${q}%,customer_tool_id.ilike.%${q}%`)
+        .order("name");
+
+    if (prefix) query = query.eq("customer_prefix", prefix);
+
+    const { data, error } = await query;
+
+    if (error) return [];
+    return data || [];
 }
 
-/* CHECKBOX LINES */
-.checkbox-line {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 6px;
+function renderToolSuggestions(list) {
+    const box = document.getElementById("tool-suggestions");
+    box.innerHTML = "";
+
+    if (!list.length) {
+        box.style.display = "none";
+        return;
+    }
+
+    list.forEach(t => {
+        const div = document.createElement("div");
+        div.className = "tool-suggestion";
+        div.textContent = `${t.name} · ${t.customer_tool_id || "bez ID"}`;
+        div.onclick = () => loadTool(t);
+        box.appendChild(div);
+    });
+
+    box.style.display = "block";
 }
 
-/* MODERN DROPDOWN */
-.dropdown {
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 100%;
-    margin-top: 2px;
+async function loadTool(tool) {
 
-    background: white;
-    border-radius: 10px;
-    padding: 6px 0;
+    loadedToolData = tool;
+    editMode = false;
 
-    box-shadow: 0 8px 20px rgba(0,0,0,0.18);
-    border: 1px solid #ddd;
+    const sidebar = document.getElementById("sidebar");
+    sidebar.classList.add("locked");
 
-    display: none;
-    z-index: 9999;
+    const btn = document.getElementById("edit-toggle");
+    btn.style.display = "block";
+    btn.textContent = "✏️ Editovat";
+
+    // vyplnit pole
+    document.getElementById("tool-name").value = tool.name || "";
+    document.getElementById("diameter").value = tool.diameter ?? "";
+    document.getElementById("length").value = tool.length ?? "";
+    document.getElementById("customer-tool-id").value = tool.customer_tool_id ?? "";
+
+    document.getElementById("dm-enable").checked = !!tool.dm_enabled;
+    document.getElementById("serial-enable").checked = !!tool.serial_enabled;
+    document.getElementById("serial-prefix").value = tool.serial_prefix || tool.customer_prefix || "";
+    document.getElementById("dm-content").value = tool.dm_code ?? "";
+
+    // doplníme zákazníka
+    document.getElementById("customer-prefix").value = tool.customer_prefix;
+
+    const { data } = await supabaseClient
+        .from("customers")
+        .select("*")
+        .eq("prefix", tool.customer_prefix)
+        .maybeSingle();
+
+    if (data) {
+        document.getElementById("customer-search").value = data.name;
+    }
+
+    document.getElementById("tool-suggestions").style.display = "none";
+
+    updatePreview();
 }
 
-.dropdown div {
-    padding: 10px 14px;
-    cursor: pointer;
-    transition: background 0.15s;
+/************************************************************
+ * SERIAL + DM
+ ************************************************************/
+async function generateSerial() {
+
+    const enableSerial = document.getElementById("serial-enable").checked;
+    const dmEnabled = document.getElementById("dm-enable").checked;
+
+    const prefix = document.getElementById("serial-prefix").value.trim();
+    const dmBox = document.getElementById("dm-content");
+
+    if (!enableSerial) {
+        dmBox.value = dmEnabled ? prefix : "";
+        updatePreview();
+        return;
+    }
+
+    if (!prefix) {
+        alert("Vyplň prefix.");
+        return;
+    }
+
+    const { data } = await supabaseClient
+        .from("serial_counters")
+        .select("*")
+        .eq("prefix", prefix)
+        .maybeSingle();
+
+    let next = data ? data.current_serial + 1 : 1;
+
+    if (!data) {
+        await supabaseClient.from("serial_counters").insert({ prefix, current_serial: 1 });
+    } else {
+        await supabaseClient.from("serial_counters")
+            .update({ current_serial: next })
+            .eq("id", data.id);
+    }
+
+    const serial = `${prefix}-${String(next).padStart(4, "0")}`;
+    dmBox.value = dmEnabled ? serial : prefix;
+
+    updatePreview();
 }
 
-.dropdown div:hover {
-    background: #f3f3f3;
+/************************************************************
+ * PREVIEW
+ ************************************************************/
+function updatePreview() {
+
+    const name = document.getElementById("tool-name").value || "";
+    const diameter = parseFloat(document.getElementById("diameter").value) || 10;
+    const length = parseFloat(document.getElementById("length").value) || 50;
+    const dm = document.getElementById("dm-content").value || "";
+    const id = document.getElementById("customer-tool-id").value || "";
+
+    let w = length * 18;
+    let h = diameter * 18;
+
+    const maxSize = 420;
+    if (Math.max(w, h) > maxSize) {
+        const f = maxSize / Math.max(w, h);
+        w *= f;
+        h *= f;
+    }
+
+    document.getElementById("preview-area").innerHTML = `
+        <div style="
+            width:${w}px;
+            height:${h}px;
+            border-radius:${h/2}px;
+            background: radial-gradient(circle at 30% 0%, white, #d0d0d0);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            box-shadow:0 6px 16px rgba(0,0,0,0.15);
+        ">
+            <div style="
+                width:${h*0.4}px;
+                height:${h*0.25}px;
+                background:black;
+                border-radius:5px;
+            "></div>
+        </div>
+
+        <div style="text-align:center;margin-top:10px;font-size:14px;">
+            <b>${name || "&nbsp;"}</b><br>
+            ${id || "&nbsp;"}<br>
+            <span style="opacity:0.7;">DM: ${dm || "&nbsp;"}</span>
+        </div>
+    `;
 }
 
-/* MAIN AREA */
-.main {
-    flex: 1;
-    position: sticky;
-    top: 20px;
-    height: calc(100vh - 40px);
-    overflow-y: auto;
+/************************************************************
+ * SAVE TOOL
+ ************************************************************/
+async function saveTool() {
+
+    const prefix = document.getElementById("customer-prefix").value.trim();
+    const name = document.getElementById("tool-name").value.trim();
+
+    if (!name) {
+        alert("Vyplň název nástroje.");
+        return;
+    }
+
+    const obj = {
+        customer_prefix: prefix || null,
+        name,
+        diameter: parseFloat(document.getElementById("diameter").value) || null,
+        length: parseFloat(document.getElementById("length").value) || null,
+        dm_enabled: document.getElementById("dm-enable").checked,
+        serial_enabled: document.getElementById("serial-enable").checked,
+        serial_prefix: document.getElementById("serial-prefix").value.trim(),
+        dm_code: document.getElementById("dm-content").value.trim(),
+        customer_tool_id: document.getElementById("customer-tool-id").value.trim()
+    };
+
+    const { error } = await supabaseClient.from("tools").insert(obj);
+
+    if (error) {
+        alert("Nepodařilo se uložit.");
+        return;
+    }
+
+    alert("Nástroj uložen.");
 }
 
-.preview-box {
-    background: white;
-    border-radius: 12px;
-    padding: 20px;
-    border: 1px solid #ddd;
-    min-height: 260px;
+/************************************************************
+ * EXPORT (zatím placeholder)
+ ************************************************************/
+function exportLabel() {
+    alert("Export bude doplněn později.");
 }
+
+/************************************************************
+ * INIT
+ ************************************************************/
+window.addEventListener("DOMContentLoaded", () => {
+
+    // CUSTOMER AUTOCOMPLETE
+    document.getElementById("customer-search").addEventListener("input", async e => {
+        const txt = e.target.value.trim();
+        renderCustomerSuggestions(await searchCustomers(txt), txt);
+    });
+
+    // TOOL SEARCH
+    document.getElementById("tool-search").addEventListener("input", async () => {
+        const q = document.getElementById("tool-search").value.trim();
+        const prefix = document.getElementById("customer-prefix").value.trim();
+        renderToolSuggestions(await searchTools(q, prefix));
+    });
+
+    // LIVE PREVIEW
+    ["tool-name", "diameter", "length", "customer-tool-id", "dm-content"]
+        .forEach(id => {
+            document.getElementById(id).addEventListener("input", updatePreview);
+        });
+
+    updatePreview();
+});
