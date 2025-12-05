@@ -5,7 +5,6 @@
     <title>Laser Label Builder</title>
 
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
     <link rel="stylesheet" href="styles.css">
 </head>
 
@@ -19,10 +18,11 @@
         <h1>Laser Label Builder</h1>
         <p class="subtitle">Nultá verze · Offline demo</p>
 
-        <!-- EDIT BUTTON – zobrazí se jen když je načtený nástroj -->
-        <button id="edit-toggle" class="edit-btn" style="display:none;" onclick="toggleEditMode()">
-            ✏️ Editovat parametry
-        </button>
+        <!-- RESET -->
+        <button class="reset-btn" onclick="resetForm()">🧹 RESET formuláře</button>
+
+        <!-- EDIT / LOCK BUTTON -->
+        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat parametry</button>
 
         <!-- ZÁKAZNÍK -->
         <h2><span class="icon">🧩</span> Zákazník</h2>
@@ -43,7 +43,7 @@
             <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY NÁSTROJE -->
+        <!-- PARAMETRY -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
@@ -58,7 +58,7 @@
         <label>Interní číslo zákazníka (SAP / ERP / ID)</label>
         <input id="customer-tool-id" type="text">
 
-        <!-- DM a Serial -->
+        <!-- DM / SERIAL -->
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
         <label><input type="checkbox" id="dm-enable"> Povolit DataMatrix</label>
@@ -72,7 +72,7 @@
 
         <button onclick="generateSerial()">Generovat DM / Serial</button>
 
-        <!-- ULOŽENÍ -->
+        <!-- ULOŽIT -->
         <h2><span class="icon">💾</span> Uložit nový nástroj</h2>
         <button onclick="saveTool()">Uložit nástroj</button>
 
@@ -82,7 +82,7 @@
 
     </div>
 
-    <!-- PRAVÁ STRANA – NÁHLED -->
+    <!-- MAIN AREA -->
     <div class="main">
         <h2>Náhled štítku (Laser Preview)</h2>
         <div id="preview-area" class="preview-box"></div>
