@@ -20,12 +20,12 @@
 
         <!-- TOP BUTTONS -->
         <button id="reset-btn" class="reset-btn" onclick="resetAll()">🔁 Reset formuláře</button>
-        <button id="edit-toggle" class="edit-btn" onclick="toggleEditMode()">✏️ Editovat parametry</button>
+        <button id="edit-toggle" class="edit-btn" style="display:none;" onclick="toggleEditMode()">✏️ Editovat</button>
 
         <!-- ZÁKAZNÍK -->
         <h2><span class="icon">🧩</span> Zákazník</h2>
 
-        <div class="customer-search-wrapper">
+        <div class="input-wrapper">
             <input id="customer-search" type="text" placeholder="Vyhledat / založit zákazníka…">
             <div id="customer-suggestions" class="dropdown"></div>
         </div>
@@ -36,12 +36,12 @@
         <!-- HLEDAT NÁSTROJ -->
         <h2><span class="icon">🔍</span> Vyhledat uložený nástroj</h2>
 
-        <div class="tool-search-wrapper">
+        <div class="input-wrapper">
             <input id="tool-search" type="text" placeholder="Hledat podle názvu nebo ID…">
             <div id="tool-suggestions" class="dropdown"></div>
         </div>
 
-        <!-- PARAMETRY (zamykatelné) -->
+        <!-- PARAMETRY -->
         <h2><span class="icon">🛠</span> Parametry nástroje</h2>
 
         <label>Název nástroje</label>
@@ -60,13 +60,11 @@
         <h2><span class="icon">🔢</span> DM & Sériové číslo</h2>
 
         <label class="checkbox-line lockable-field">
-            <input type="checkbox" id="dm-enable">
-            Povolit DataMatrix
+            <input type="checkbox" id="dm-enable"> Povolit DataMatrix
         </label>
 
         <label class="checkbox-line lockable-field">
-            <input type="checkbox" id="serial-enable">
-            Použít sériové číslo
+            <input type="checkbox" id="serial-enable"> Použít sériové číslo
         </label>
 
         <label>Prefix pro sériové číslo</label>
